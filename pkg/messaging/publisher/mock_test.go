@@ -3,7 +3,7 @@ package publisher_test
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
 
 	"cloud.google.com/go/pubsub"
 )

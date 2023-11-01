@@ -4,7 +4,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"context"
 	"errors"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"sync"

@@ -1,4 +1,4 @@
-module github.com/marcodd23/go-micro-lib
+module github.com/marcodd23/go-micro
 
 go 1.21.3
 

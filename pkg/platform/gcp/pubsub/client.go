@@ -4,7 +4,7 @@ package pubsub
 import (
 	"cloud.google.com/go/pubsub"
 	"context"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
 )
 
 // pubSubClient - publisher.Client implementation for PubSub.
