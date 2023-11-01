@@ -1,0 +1,91 @@
+
+
+name: Check feature
+on:
+  pull_request:
+    branches:
+      - dev
+    types:
+      - opened
+      - synchronize
+      - edited
+      - reopened
+      - closed
+
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
+
+jobs:
+  check_feature:
+    if: ${{ github.event.pull_request.merged == false}}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      #################################
+      ## Caching
+      #################################
+
+      - name: Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          cache: true
+          go-version-file: 'go.mod'
+
+      # Setup linter
+      - name: Lint (info)
+        id: linter
+        run: echo "version=$(make lint-info)" >> $GITHUB_OUTPUT
+
+      - name: Lint Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.linter.outputs.version }}
+          key: ${{ runner.os }}-lint-${{ steps.linter.outputs.version }}
+
+#      # Setup private Go module access
+#      - name: Private module access
+#        run: |
+#          git config \
+#            --global \
+#            url."https://"${{ secrets.EXTERNAL_GITHUB_TOKEN }}"@github.com/ingka-group-digital/".insteadOf "https://github.com/ingka-group-digital/"
+
+      # Build the App.
+      - name: Build
+        run: |
+          make build 
+
+      # Run Linter controls
+      - name: Lint
+        run: make lint
+
+  delete_feature_branch_on_pr_merged:
+    if: ${{ github.event.pull_request.merged }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: delete branch
+        uses: SvanBoxel/delete-merged-branch@1.4.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
