@@ -7,7 +7,7 @@ import (
 	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
 )
 
-// pubSubClient - messaging.Client implementation for PubSub.
+// pubSubClient - publisher.Client implementation for PubSub.
 type pubSubClient struct {
 	client *pubsub.Client
 }
@@ -21,7 +21,7 @@ func (w *pubSubClient) Close() error {
 	return w.client.Close()
 }
 
-// pubSubTopic - messaging.Topic implementation for PubSub.
+// pubSubTopic - publisher.Topic implementation for PubSub.
 type pubSubTopic struct {
 	topic *pubsub.Topic
 }
@@ -51,7 +51,7 @@ func (w *pubSubTopic) ConfigPublishSettings(config publisher.TopicPublishConfig)
 	w.topic.PublishSettings.DelayThreshold = config.FlushDelayThreshold
 }
 
-// pubSubPublishResult - implementation of PublishResult.
+// pubSubPublishResult - publisher.PublishResult implementation for PubSub.
 type pubSubPublishResult struct {
 	publishResult *pubsub.PublishResult
 }

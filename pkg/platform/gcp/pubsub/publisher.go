@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// NewPubSubBufferedPublisherFactory - factory that create a pubsub client and then initialize a messaging.BufferedPublisher.
+// NewPubSubBufferedPublisherFactory - factory that create a pubsub client and then initialize a publisher.BufferedPublisher.
 func NewPubSubBufferedPublisherFactory(
 	ctx context.Context,
 	projectID string,
@@ -35,7 +35,7 @@ func NewPubSubBufferedPublisherFactory(
 	return publisher.NewBufferedPublisher(pubSubClient, publishConfig)
 }
 
-// NewBufferedPublisherWithRetryFactory - factory that create a pubsub client and then initialize a messaging.BufferedPublisherWithRetry.
+// NewBufferedPublisherWithRetryFactory - factory that create a pubsub client and then initialize a publisher.BufferedPublisherWithRetry.
 func NewBufferedPublisherWithRetryFactory(
 	ctx context.Context,
 	projectID string,
