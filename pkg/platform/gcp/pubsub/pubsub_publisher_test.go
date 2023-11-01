@@ -1,9 +1,9 @@
-package google_pubsub_test
+package pubsub_test
 
 import (
 	"context"
 	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher/pubsub"
+	"github.com/marcodd23/go-micro-lib/pkg/platform/gcp/pubsub"
 	"github.com/marcodd23/go-micro-lib/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +30,7 @@ func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := google_pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
+	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 
@@ -68,7 +68,7 @@ func TestPubSubBufferedPublisher_With_Retry_Json(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := google_pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
+	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 
@@ -106,7 +106,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := google_pubsub.NewPubSubBufferedPublisherFactory(ctx, "test-project", 2, nil, connOptions...)
+	bp, err := pubsub.NewPubSubBufferedPublisherFactory(ctx, "test-project", 2, nil, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 

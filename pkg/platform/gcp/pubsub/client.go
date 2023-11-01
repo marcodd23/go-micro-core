@@ -1,5 +1,5 @@
 //nolint:unused
-package google_pubsub
+package pubsub
 
 import (
 	"cloud.google.com/go/pubsub"
