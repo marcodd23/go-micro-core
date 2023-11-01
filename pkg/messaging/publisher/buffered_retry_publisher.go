@@ -1,4 +1,4 @@
-package messaging
+package publisher
 
 import (
 	"context"
@@ -306,7 +306,8 @@ func (p *BuffPublisherWithRetry) publishBatch(ctx context.Context, topic Topic, 
 	resultMap := make(map[*Message]PublishResult)
 
 	// Publish all messages in the topic and collect the result in the resultMap.
-	for _, msg := range messages {
+	for _, message := range messages {
+		msg := message
 		resultMap[msg] = topic.Publish(ctx, *msg)
 	}
 
@@ -323,19 +324,3 @@ func (p *BuffPublisherWithRetry) publishBatch(ctx context.Context, topic Topic, 
 
 	return retryMsgs
 }
-
-//// SetInitialRetryInterval - set initial retry interval.
-//func (p *BuffPublisherWithRetry) SetInitialRetryInterval(interval time.Duration) {
-//	p.Lock()
-//	defer p.Unlock()
-//
-//	p.initialRetryInterval = interval
-//}
-//
-//// SetFlushDelayThreshold - set the time interval of the periodic flush in case no messages are received and the buffered is not yet full.
-//func (p *BuffPublisherWithRetry) SetFlushDelayThreshold(delayThreshold time.Duration) {
-//	p.Lock()
-//	defer p.Unlock()
-//
-//	p.flushDelayThreshold = delayThreshold
-//}

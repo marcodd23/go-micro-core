@@ -1,4 +1,4 @@
-package messaging
+package publisher
 
 // Message - pubsub message payload interface
 type Message interface {

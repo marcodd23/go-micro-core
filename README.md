@@ -1,2 +1,2 @@
-# go-microservice-lib
-A collection of interfaces and implementations for common microservices scenarios
+# go-micro
+A collection of interfaces and implementations for common microservices patterns.

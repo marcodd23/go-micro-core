@@ -1,9 +1,10 @@
+//nolint:unused
 package google_pubsub
 
 import (
 	"cloud.google.com/go/pubsub"
 	"context"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging"
+	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
 )
 
 // pubSubClient - messaging.Client implementation for PubSub.
@@ -11,7 +12,7 @@ type pubSubClient struct {
 	client *pubsub.Client
 }
 
-func (w *pubSubClient) Topic(id string) messaging.Topic {
+func (w *pubSubClient) Topic(id string) publisher.Topic {
 	realTopic := w.client.Topic(id)
 	return &pubSubTopic{topic: realTopic}
 }
@@ -25,12 +26,12 @@ type pubSubTopic struct {
 	topic *pubsub.Topic
 }
 
-func (w *pubSubTopic) Publish(ctx context.Context, msg messaging.Message) messaging.PublishResult {
+func (w *pubSubTopic) Publish(ctx context.Context, msg publisher.Message) publisher.PublishResult {
 	pubSubMessage := &pubsub.Message{
 		Attributes: msg.GetAttributes(),
 		Data:       msg.GetPayload(),
 	}
-	return w.topic.Publish(ctx, pubSubMessage)
+	return pubSubPublishResult{publishResult: w.topic.Publish(ctx, pubSubMessage)}
 }
 
 func (w *pubSubTopic) Stop() {
@@ -45,7 +46,7 @@ func (w *pubSubTopic) String() string {
 	return w.topic.String()
 }
 
-func (w *pubSubTopic) ConfigPublishSettings(config messaging.TopicPublishConfig) {
+func (w *pubSubTopic) ConfigPublishSettings(config publisher.TopicPublishConfig) {
 	w.topic.PublishSettings.CountThreshold = int(config.BatchSize)
 	w.topic.PublishSettings.DelayThreshold = config.FlushDelayThreshold
 }
@@ -55,10 +56,10 @@ type pubSubPublishResult struct {
 	publishResult *pubsub.PublishResult
 }
 
-func (prw *pubSubPublishResult) Get(ctx context.Context) (string, error) {
+func (prw pubSubPublishResult) Get(ctx context.Context) (string, error) {
 	return prw.publishResult.Get(ctx)
 }
 
-func (prw *pubSubPublishResult) Ready() <-chan struct{} {
+func (prw pubSubPublishResult) Ready() <-chan struct{} {
 	return prw.publishResult.Ready()
 }

@@ -1,19 +1,19 @@
 //nolint:all
-package messaging_test
+package publisher_test
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging"
+	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
 
 	"cloud.google.com/go/pubsub"
 )
 
 // MockClient - mock a messaging.Client
 type MockClient struct {
-	topics map[string]messaging.Topic
+	topics map[string]publisher.Topic
 }
 
-func (c *MockClient) Topic(id string) messaging.Topic {
+func (c *MockClient) Topic(id string) publisher.Topic {
 	return c.topics[id]
 }
 
@@ -24,7 +24,7 @@ func (c *MockClient) Close() error {
 // MockTopic - mock a messaging.Topic
 type MockTopic struct {
 	topic                     *pubsub.Topic
-	publishFunc               func(ctx context.Context, msg messaging.Message) messaging.PublishResult
+	publishFunc               func(ctx context.Context, msg publisher.Message) publisher.PublishResult
 	stopFunc                  func()
 	flushFunc                 func()
 	stringFunc                func() string
@@ -32,7 +32,7 @@ type MockTopic struct {
 	configPublishSettingsFunc func(config func(topic *pubsub.Topic))
 }
 
-func (t MockTopic) Publish(ctx context.Context, msg messaging.Message) messaging.PublishResult {
+func (t MockTopic) Publish(ctx context.Context, msg publisher.Message) publisher.PublishResult {
 	return t.publishFunc(ctx, msg)
 }
 
@@ -48,7 +48,7 @@ func (t MockTopic) String() string {
 	return t.id
 }
 
-func (t MockTopic) ConfigPublishSettings(config messaging.TopicPublishConfig) {
+func (t MockTopic) ConfigPublishSettings(config publisher.TopicPublishConfig) {
 	// t.configPublishSettingsFunc(config)
 }
 

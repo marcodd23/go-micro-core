@@ -1,11 +1,10 @@
-package messaging
+package publisher
 
 import (
 	"log"
 
 	"context"
 	"sync"
-	"time"
 )
 
 // BufferedPublisher - interface for the publisher
@@ -17,11 +16,9 @@ type BufferedPublisher interface {
 // BfPublisher - BufferedPublisher struct implementation.
 type BfPublisher struct {
 	sync.Mutex
-	client              Client
-	publishConfig       TopicPublishConfig
-	batchSize           int32
-	flushDelayThreshold time.Duration
-	Done                chan struct{}
+	client        Client
+	publishConfig TopicPublishConfig
+	Done          chan struct{}
 }
 
 // NewBufferedPublisher - Constructor of BufferedPublisher.
@@ -29,10 +26,9 @@ func NewBufferedPublisher(
 	client Client,
 	publishConfig TopicPublishConfig) (BufferedPublisher, error) {
 	bp := &BfPublisher{
-		client:              client,
-		batchSize:           publishConfig.BatchSize,
-		flushDelayThreshold: publishConfig.FlushDelayThreshold,
-		Done:                make(chan struct{}),
+		client:        client,
+		publishConfig: publishConfig,
+		Done:          make(chan struct{}),
 	}
 
 	return bp, nil
@@ -64,8 +60,8 @@ func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatc
 	case <-p.Done:
 		return nil, NewMessagingErrorCode(ErrorPublisherClosed, nil)
 	default:
-		if int32(len(payloadBatch)) > p.batchSize {
-			return nil, NewMessagingError(nil, "error: provide a batch of the configured batch size:  %d", p.batchSize)
+		if int32(len(payloadBatch)) > p.publishConfig.BatchSize {
+			return nil, NewMessagingError(nil, "error: provide a batch of the configured batch size:  %d", p.publishConfig.BatchSize)
 		}
 
 		// Initialize a new BatchResult instance with an empty slice of bufferedPublishResult pointers
@@ -76,7 +72,8 @@ func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatc
 		messagesToPublish := make(map[string]*Message)
 
 		for _, message := range payloadBatch {
-			messagesToPublish[message.GetMsgRefId()] = &message
+			msg := message
+			messagesToPublish[message.GetMsgRefId()] = &msg
 		}
 
 		p.publishBatch(ctx, topicName, messagesToPublish, batchResult)
@@ -94,7 +91,8 @@ func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messag
 	defer topic.Stop()
 
 	// Publish all messages in the topic and collect the result in the resultMap.
-	for msgRefId, msg := range messages {
+	for msgRefId, message := range messages {
+		msg := message
 		resultMap[msgRefId] = topic.Publish(ctx, *msg)
 	}
 

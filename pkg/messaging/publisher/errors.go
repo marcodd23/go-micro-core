@@ -1,5 +1,5 @@
 //nolint:all
-package messaging
+package publisher
 
 import "fmt"
 

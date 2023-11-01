@@ -2,8 +2,8 @@ package google_pubsub_test
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro-lib/pkg/messaging"
-	google_pubsub "github.com/marcodd23/go-micro-lib/pkg/messaging/pubsub"
+	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro-lib/pkg/messaging/publisher/pubsub"
 	"github.com/marcodd23/go-micro-lib/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
 	// defer bp.Close()
 
 	// Test publishing a single message.
-	err = bp.Publish(ctx, "test-topic", &messaging.MsgPayload{Data: []byte("TestMessage1")})
+	err = bp.Publish(ctx, "test-topic", &publisher.MsgPayload{Data: []byte("TestMessage1")})
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
@@ -73,7 +73,7 @@ func TestPubSubBufferedPublisher_With_Retry_Json(t *testing.T) {
 	// defer bp.Close()
 
 	// Test publishing a single message.
-	err = bp.Publish(ctx, "test-topic", &messaging.MsgPayload{Data: []byte("TestMessage1")})
+	err = bp.Publish(ctx, "test-topic", &publisher.MsgPayload{Data: []byte("TestMessage1")})
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
@@ -110,10 +110,9 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 	require.NoError(t, err)
 	// defer bp.Close()
 
-	data := []byte("test-message-1")
-	payload1 := &messaging.MsgPayload{
+	payload1 := &publisher.MsgPayload{
 		MessageId: "message1",
-		Data:      data,
+		Data:      []byte("test-message-1"),
 		Attributes: map[string]string{
 			"attr1": "value1",
 			"attr2": "value2",
@@ -121,10 +120,9 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 		},
 	}
 
-	data = []byte("test-message-2")
-	payload2 := &messaging.MsgPayload{
+	payload2 := &publisher.MsgPayload{
 		MessageId: "message2",
-		Data:      data,
+		Data:      []byte("test-message-2"),
 		Attributes: map[string]string{
 			"attr1": "value1",
 			"attr2": "value2",
@@ -132,7 +130,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 		},
 	}
 
-	batch := []messaging.Message{payload1, payload2}
+	batch := []publisher.Message{payload1, payload2}
 
 	// Test publishing a single message.
 	batchRes, err := bp.Publish(ctx, "test-topic", batch)
