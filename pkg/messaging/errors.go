@@ -3,11 +3,11 @@ package messaging
 
 import "fmt"
 
-// MessagingErrorCode
-type MessagingErrorCode int
+// ErrorCode - error code enum.
+type ErrorCode int
 
 const (
-	ErrorPublisherClosed MessagingErrorCode = iota
+	ErrorPublisherClosed ErrorCode = iota
 	ErrorInitializingPubsubClient
 	ErrorConvertingToProto
 	ErrorSerializingProtoMessage
@@ -15,7 +15,7 @@ const (
 	ErrorClosingPubsubClient
 )
 
-var errorMessages = map[MessagingErrorCode]string{
+var errorMessages = map[ErrorCode]string{
 	ErrorPublisherClosed:          "error Publisher is already closed",
 	ErrorInitializingPubsubClient: "error initializing Broker Client",
 	ErrorConvertingToProto:        "error converting to proto message",
@@ -24,23 +24,23 @@ var errorMessages = map[MessagingErrorCode]string{
 	ErrorClosingPubsubClient:      "error closing pubsub client",
 }
 
-// MessagingError - General PubSub Error.
-type MessagingError struct {
+// Error - General PubSub Error.
+type Error struct {
 	message string
 	err     error
 }
 
 // NewMessagingErrorCode - MessagingError constructor given a predefined Error Code.
-func NewMessagingErrorCode(code MessagingErrorCode, err error) *MessagingError {
-	return &MessagingError{message: errorMessages[code], err: err}
+func NewMessagingErrorCode(code ErrorCode, err error) *Error {
+	return &Error{message: errorMessages[code], err: err}
 }
 
 // NewMessagingError - NewMessagingError constructor.
-func NewMessagingError(err error, msg string, args ...any) *MessagingError {
-	return &MessagingError{message: fmt.Sprintf(msg, args...), err: err}
+func NewMessagingError(err error, msg string, args ...any) *Error {
+	return &Error{message: fmt.Sprintf(msg, args...), err: err}
 }
 
-func (ge *MessagingError) Error() string {
+func (ge *Error) Error() string {
 	if ge.err != nil {
 		return fmt.Sprintf("%s: %v", ge.message, ge.err)
 	}

@@ -14,6 +14,30 @@ type BufferedPublisher interface {
 	Close(ctx context.Context) error
 }
 
+// BfPublisher - BufferedPublisher struct implementation.
+type BfPublisher struct {
+	sync.Mutex
+	client              Client
+	publishConfig       TopicPublishConfig
+	batchSize           int32
+	flushDelayThreshold time.Duration
+	Done                chan struct{}
+}
+
+// NewBufferedPublisher - Constructor of BufferedPublisher.
+func NewBufferedPublisher(
+	client Client,
+	publishConfig TopicPublishConfig) (BufferedPublisher, error) {
+	bp := &BfPublisher{
+		client:              client,
+		batchSize:           publishConfig.BatchSize,
+		flushDelayThreshold: publishConfig.FlushDelayThreshold,
+		Done:                make(chan struct{}),
+	}
+
+	return bp, nil
+}
+
 // BatchResult - result from batch publishing. It contains reference Id to the original message published.
 type BatchResult struct {
 	Results []*BufferedPublishResult
@@ -30,32 +54,8 @@ type BufferedPublishResult struct {
 	Err      error
 }
 
-// BuffPublisher - buffered publisher struct implementation.
-type BuffPublisher struct {
-	sync.Mutex
-	client              Client
-	publishConfig       TopicPublishConfig
-	batchSize           int32
-	flushDelayThreshold time.Duration
-	Done                chan struct{}
-}
-
-// NewBufferedPublisher - Constructor.
-func NewBufferedPublisher(
-	client Client,
-	publishConfig TopicPublishConfig) (BufferedPublisher, error) {
-	bp := &BuffPublisher{
-		client:              client,
-		batchSize:           publishConfig.BatchSize,
-		flushDelayThreshold: publishConfig.FlushDelayThreshold,
-		Done:                make(chan struct{}),
-	}
-
-	return bp, nil
-}
-
 // Publish - Publish a Batch of MessagePayload in Json
-func (p *BuffPublisher) Publish(ctx context.Context, topicName string, payloadBatch []Message) (*BatchResult, error) {
+func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatch []Message) (*BatchResult, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -85,7 +85,7 @@ func (p *BuffPublisher) Publish(ctx context.Context, topicName string, payloadBa
 	}
 }
 
-func (p *BuffPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*Message, batchResult *BatchResult) {
+func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*Message, batchResult *BatchResult) {
 	resultMap := make(map[string]PublishResult)
 
 	topic := p.client.Topic(topicName)
@@ -113,7 +113,7 @@ func (p *BuffPublisher) publishBatch(ctx context.Context, topicName string, mess
 }
 
 // Close - close the BufferedPublisher and all the related goroutines.
-func (p *BuffPublisher) Close(ctx context.Context) error {
+func (p *BfPublisher) Close(ctx context.Context) error {
 	// Non-blocking check if the Done channel is closed
 	select {
 	case <-p.Done:
