@@ -39,6 +39,56 @@ jobs:
           fetch-depth: 0
 
       #################################
+      ## Caching
+      #################################
+
+      - name: Set Weekly Cache Key
+        id: set-weekly-cache-key
+        run: echo "WEEKLY_CACHE_KEY=$(date +%Y-%V)" >> $GITHUB_ENV
+
+      - name: Cache Go build
+        id: cache-go-build
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
+      - name: Cache Go modules
+        id: cache-go-mod
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          cache: true
+          check-latest: true
+          go-version-file: 'go.mod'
+
+
+      #################################
+      ## Build and Test
+      #################################
+
+      - name: Build
+        run: make build
+        env:
+          GOMODCACHE: /home/runner/go/pkg/mod
+          GOCACHE: /home/runner/.cache/go-build
+
+      - name: Test
+        run: make test
+        env:
+          GOMODCACHE: /home/runner/go/pkg/mod
+          GOCACHE: /home/runner/.cache/go-build
+
+      #################################
       ## VERSIONING
       #################################
       - name: Bump Release Version

@@ -27,8 +27,12 @@ jobs:
           fetch-depth: 0
 
       #################################
-      ## Go Caching
+      ## Caching
       #################################
+
+      - name: Set Weekly Cache Key
+        id: set-weekly-cache-key
+        run: echo "WEEKLY_CACHE_KEY=$(date +%Y-%V)" >> $GITHUB_ENV
 
       - name: Cache Go build
         id: cache-go-build
@@ -55,12 +59,19 @@ jobs:
           check-latest: true
           go-version-file: 'go.mod'
 
+
       #################################
       ## Build and Test
       #################################
 
-      - name: Build and Test
+      - name: Build
         run: make build
+        env:
+          GOMODCACHE: /home/runner/go/pkg/mod
+          GOCACHE: /home/runner/.cache/go-build
+
+      - name: Test
+        run: make test
         env:
           GOMODCACHE: /home/runner/go/pkg/mod
           GOCACHE: /home/runner/.cache/go-build

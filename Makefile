@@ -35,12 +35,14 @@ clean:
 ## test: Runs all tests
 .PHONY: test
 test:
+	@go mod download
+	@go mod tidy
 	@echo "🚀 Running tests"
 	@go test -cover -count=1 ./pkg/...
 
 ## build: Build the application artifacts. Linting can be skipped by setting env variable IGNORE_LINTING.
 .PHONY: build
-build: test
+build:
 ifeq ("$(IGNORE_LINTING)","false")
 	@make lint
 endif
