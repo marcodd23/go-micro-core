@@ -4,7 +4,9 @@ import (
 	"cloud.google.com/go/pubsub"
 	"context"
 	"errors"
-	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
+	gcpPubSub "github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"sync"
@@ -27,7 +29,7 @@ func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {
 	}
 
 	data := []byte("test-message")
-	mockMessage := &publisher.MsgPayload{
+	mockMessage := &gcpPubSub.Message{
 		Data: data,
 		Attributes: map[string]string{
 			"key1": "value1",
@@ -52,7 +54,7 @@ func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg publisher.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},
@@ -113,7 +115,7 @@ func TestRetryLogicAndBackgroundRoutine_JsonMessage(t *testing.T) {
 		FlushDelayThreshold: flushDelayThreshold,
 	}
 
-	mockMessage := &publisher.MsgPayload{
+	mockMessage := &gcpPubSub.Message{
 		Data: []byte("test-message"),
 		Attributes: map[string]string{
 			"key1": "value1",
@@ -144,7 +146,7 @@ func TestRetryLogicAndBackgroundRoutine_JsonMessage(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg publisher.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},
@@ -200,7 +202,7 @@ func TestClose(t *testing.T) {
 		FlushDelayThreshold: flushDelayThreshold,
 	}
 
-	mockMessage := &publisher.MsgPayload{
+	mockMessage := &gcpPubSub.Message{
 		Data: []byte("test-message"),
 		Attributes: map[string]string{
 			"key1": "value1",
@@ -218,7 +220,7 @@ func TestClose(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg publisher.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},

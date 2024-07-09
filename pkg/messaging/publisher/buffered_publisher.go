@@ -1,6 +1,7 @@
 package publisher
 
 import (
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"log"
 
 	"context"
@@ -9,7 +10,7 @@ import (
 
 // BufferedPublisher - interface for the publisher
 type BufferedPublisher interface {
-	Publish(ctx context.Context, topicName string, payloadBatch []Message) (*BatchResult, error)
+	Publish(ctx context.Context, topicName string, payloadBatch []messaging.Message) (*BatchResult, error)
 	Close(ctx context.Context) error
 }
 
@@ -50,8 +51,8 @@ type BufferedPublishResult struct {
 	Err      error
 }
 
-// Publish - Publish a Batch of MessagePayload in Json
-func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatch []Message) (*BatchResult, error) {
+// Publish - Publish a Batch of Messages in Json
+func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatch []messaging.Message) (*BatchResult, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -69,7 +70,7 @@ func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatc
 			Results: []*BufferedPublishResult{},
 		}
 
-		messagesToPublish := make(map[string]*Message)
+		messagesToPublish := make(map[string]*messaging.Message)
 
 		for _, message := range payloadBatch {
 			msg := message
@@ -82,7 +83,7 @@ func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatc
 	}
 }
 
-func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*Message, batchResult *BatchResult) {
+func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*messaging.Message, batchResult *BatchResult) {
 	resultMap := make(map[string]PublishResult)
 
 	topic := p.client.Topic(topicName)

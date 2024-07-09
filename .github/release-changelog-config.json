@@ -1,0 +1,11 @@
+{
+  "categories": [
+    { "title": "🚀 Features", "labels": ["feature"] },
+    { "title": "🐛 Bug Fixes", "labels": ["bug", "bugfix", "fix"] },
+    { "title": "🧪 Tests", "labels": ["test", "tests"] },
+    { "title": "🛠 Maintenance", "labels": ["chore", "maintenance", "documentation", "enhancement"] },
+    { "title": "🔄 Dependencies", "labels": ["dependencies"] },
+    { "title": "Other Changes", "labels": [] }
+  ],
+  "template": "${{CHANGELOG}}"
+}

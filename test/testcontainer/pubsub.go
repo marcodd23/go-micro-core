@@ -21,7 +21,7 @@ const (
 	pubSubEmulatorHost  = "PUBSUB_EMULATOR_HOST"
 )
 
-// PubsubContainer represents the pubsub container type used in the module.
+// PubsubContainer represents the cloud_pubsub container type used in the module.
 type PubsubContainer struct {
 	Container testcontainers.Container
 	URI       string
@@ -30,7 +30,7 @@ type PubsubContainer struct {
 	projectId string
 }
 
-// StartPubSubContainer - startContainer creates an instance of the pubsub container type.
+// StartPubSubContainer - startContainer creates an instance of the cloud_pubsub container type.
 func StartPubSubContainer(ctx context.Context, projectId string) (*PubsubContainer, error) {
 	req := testcontainers.ContainerRequest{
 		Image:        pubSubEmulatorImage,
@@ -110,7 +110,7 @@ func (c *PubsubContainer) CreateTopic(ctx context.Context, t *testing.T, topicNa
 	options := c.CreateConnectionOptions(t)
 
 	client := c.getClient(ctx, t, options)
-	// client, err := pubsub.NewClient(ctx, c.projectId, options...)
+	// client, err := cloud_pubsub.NewClient(ctx, c.projectId, options...)
 	// if err != nil {
 	//     t.Fatal(err)
 	// }
@@ -133,7 +133,7 @@ func (c *PubsubContainer) CreateTopicAndSubscription(ctx context.Context, t *tes
 	options := c.CreateConnectionOptions(t)
 
 	client := c.getClient(ctx, t, options)
-	// client, err := pubsub.NewClient(ctx, c.projectId, options...)
+	// client, err := cloud_pubsub.NewClient(ctx, c.projectId, options...)
 	// if err != nil {
 	//     t.Fatal(err)
 	// }
@@ -154,7 +154,7 @@ func (c *PubsubContainer) CreateSubscription(ctx context.Context, t *testing.T, 
 	// Get conn options
 	options := c.CreateConnectionOptions(t)
 
-	// client, err := pubsub.NewClient(ctx, c.projectId, options...)
+	// client, err := cloud_pubsub.NewClient(ctx, c.projectId, options...)
 	// if err != nil {
 	//     t.Fatal(err)
 	// }

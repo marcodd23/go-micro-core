@@ -1,0 +1,18 @@
+name: solace-consumer
+environment: local
+version: latest
+
+logging:
+  level: INFO
+
+gcp:
+  projectNumber: 620222630834
+  project: test-project
+  location: europe-west4
+
+server:
+  port: 8080
+  concurrency: 10
+  disableStartupMsg: false
+
+custom-property: "sdgsdfgds"

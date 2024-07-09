@@ -3,6 +3,8 @@ package publisher
 import (
 	"context"
 	"fmt"
+	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -11,10 +13,10 @@ import (
 
 // BufferedPublisherWithRetry - interface for the publisher
 type BufferedPublisherWithRetry interface {
-	Publish(ctx context.Context, topic string, message Message) error
+	Publish(ctx context.Context, topic string, message messaging.Message) error
 	Flush(ctx context.Context) error
 	Close(ctx context.Context) error
-	GetBufferedMessages(topic string) []*Message
+	GetBufferedMessages(topic string) []*messaging.Message
 }
 
 // TopicCache - Topic Cache with mutex access.
@@ -39,7 +41,7 @@ func NewTopicCacheItem(topic Topic, initialValue int32) *TopicCacheItem {
 	return cacheItem
 }
 
-type retryMsgs []*Message
+type retryMsgs []*messaging.Message
 
 type retryBatch struct {
 	topic     Topic
@@ -57,7 +59,7 @@ type BuffPublisherWithRetry struct {
 	maxRetryCount        int16
 	initialRetryInterval time.Duration
 	publishConfig        TopicPublishConfig
-	bufferedMessages     map[string][]*Message // bufferedMessages by topic.
+	bufferedMessages     map[string][]*messaging.Message // bufferedMessages by topic.
 	TopicCache           *TopicCache
 	Done                 chan struct{}
 	RetryCh              chan retryBatch
@@ -78,7 +80,7 @@ func NewBufferedPublisherWithRetry(
 		maxRetryCount:        publishConfig.MaxRetryCount,
 		flushDelayThreshold:  publishConfig.FlushDelayThreshold,
 		initialRetryInterval: publishConfig.InitialRetryInterval,
-		bufferedMessages:     make(map[string][]*Message),
+		bufferedMessages:     make(map[string][]*messaging.Message),
 		TopicCache:           topicCache,
 		Done:                 make(chan struct{}),
 		RetryCh:              make(chan retryBatch),
@@ -91,7 +93,7 @@ func NewBufferedPublisherWithRetry(
 
 // Publish - publish a message in Json format and buffer it in an internal buffer of a given size, before Flushing in batch.
 // The batching mechanism is abstracted from the user that just need to publish one message at time.
-func (p *BuffPublisherWithRetry) Publish(ctx context.Context, topic string, message Message) error {
+func (p *BuffPublisherWithRetry) Publish(ctx context.Context, topic string, message messaging.Message) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -112,14 +114,28 @@ func (p *BuffPublisherWithRetry) Publish(ctx context.Context, topic string, mess
 
 // Close - close the BufferedPublisher and all the related goroutines.
 func (p *BuffPublisherWithRetry) Close(ctx context.Context) error {
-	p.Lock()
-	defer p.Unlock()
 
 	// Non-blocking check if the Done channel is closed
 	select {
 	case <-p.Done:
 		return NewMessagingErrorCode(ErrorPublisherClosed, nil)
 	default:
+		// Flush the remaining buffer
+		var flushRetry int16 = 0
+		for {
+			totalRemainingMessages := p.getTotalRemainingMessagesCountInBuffer()
+			if totalRemainingMessages <= 0 || flushRetry >= p.maxRetryCount {
+				break
+			}
+
+			logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Flushing %d remaining messages before closing PubSub Client", totalRemainingMessages))
+			err := p.Flush(ctx)
+			if err != nil {
+				logmgr.GetLogger().LogError(ctx, "Error final flushing of PubSub message buffer", err)
+			}
+			flushRetry += 1
+		}
+
 		close(p.Done)
 
 		err := p.client.Close()
@@ -129,6 +145,15 @@ func (p *BuffPublisherWithRetry) Close(ctx context.Context) error {
 
 		return nil
 	}
+}
+
+func (p *BuffPublisherWithRetry) getTotalRemainingMessagesCountInBuffer() int {
+	var remainingMessages = 0
+	for _, topicBuffer := range p.bufferedMessages {
+		remainingMessages += len(topicBuffer)
+	}
+
+	return remainingMessages
 }
 
 // Background goroutines to handle periodic flush and retries.
@@ -293,17 +318,17 @@ func (p *BuffPublisherWithRetry) releaseTopicFromCache(topic string) error {
 }
 
 // GetBufferedMessages - get hte messages in the buyffer. Useful for testing.
-func (p *BuffPublisherWithRetry) GetBufferedMessages(topic string) []*Message {
+func (p *BuffPublisherWithRetry) GetBufferedMessages(topic string) []*messaging.Message {
 	p.Lock()
 	defer p.Unlock()
 
 	return p.bufferedMessages[topic]
 }
 
-func (p *BuffPublisherWithRetry) publishBatch(ctx context.Context, topic Topic, messages []*Message) retryMsgs {
+func (p *BuffPublisherWithRetry) publishBatch(ctx context.Context, topic Topic, messages []*messaging.Message) retryMsgs {
 	var retryMsgs retryMsgs
 
-	resultMap := make(map[*Message]PublishResult)
+	resultMap := make(map[*messaging.Message]PublishResult)
 
 	// Publish all messages in the topic and collect the result in the resultMap.
 	for _, message := range messages {
