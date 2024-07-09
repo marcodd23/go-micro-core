@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	lock       sync.Mutex
 	once       sync.Once
 	dbInstance database.InstanceManager
 )
@@ -27,6 +26,7 @@ type PostgresDB struct {
 	pool            *pgxpool.Pool
 	dbConf          database.ConnConfig
 	lockConnections map[int64]*pgxpool.Conn
+	lockMap         sync.Map // Store locks for each lockId
 }
 
 // PostgresTx - Postgres Transaction manager.
@@ -84,7 +84,7 @@ func (p *PgRowScan) Scan(dest ...any) error {
 	return nil
 }
 
-// SetupPostgresDB - setupe Postgres DB connection.
+// SetupPostgresDB - setup Postgres DB connection.
 func SetupPostgresDB(ctx context.Context, dbConf database.ConnConfig, preparesStatements ...database.PreparedStatement) database.InstanceManager {
 	once.Do(func() {
 		pool, err := newConnectionPool(ctx, dbConf, preparesStatements...)
@@ -99,7 +99,11 @@ func SetupPostgresDB(ctx context.Context, dbConf database.ConnConfig, preparesSt
 				pool.Config().ConnConfig.Host,
 				pool.Config().ConnConfig.Port))
 
-		dbInstance = &PostgresDB{pool: pool, dbConf: dbConf}
+		dbInstance = &PostgresDB{
+			pool:            pool,
+			dbConf:          dbConf,
+			lockConnections: make(map[int64]*pgxpool.Conn),
+		}
 	})
 
 	return dbInstance
@@ -220,9 +224,10 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 
 		defer conn.Release()
 	} else {
-		lock.Lock()
+		lock := db.loadOrStoreLockId(lockId)
+		lock.RLock()
 		conn = db.lockConnections[lockId]
-		lock.Unlock()
+		lock.RUnlock()
 		if conn == nil {
 			return &database.ResultSet{}, errors.NewDatabaseError("impossible to find connection for lock advisory")
 		}
@@ -271,9 +276,10 @@ func (db *PostgresDB) QueryAndProcess(ctx context.Context, lockId int64, process
 
 		defer conn.Release()
 	} else {
-		lock.Lock()
+		lock := db.loadOrStoreLockId(lockId)
+		lock.RLock()
 		conn = db.lockConnections[lockId]
-		lock.Unlock()
+		lock.RUnlock()
 		if conn == nil {
 			return errors.NewDatabaseError("impossible to find connection for lock advisory")
 		}
@@ -325,9 +331,10 @@ func (db *PostgresDB) Exec(ctx context.Context, lockId int64, execQuery string, 
 
 		defer conn.Release()
 	} else {
-		lock.Lock()
+		lock := db.loadOrStoreLockId(lockId)
+		lock.RLock()
 		conn = db.lockConnections[lockId]
-		lock.Unlock()
+		lock.RUnlock()
 		if conn == nil {
 			return 0, errors.NewDatabaseError("impossible to find connection for lock advisory")
 		}
@@ -373,9 +380,10 @@ func (db *PostgresDB) TxBegin(ctx context.Context, lockId int64) (pgxTx database
 			return nil, err
 		}
 	} else {
-		lock.Lock()
+		lock := db.loadOrStoreLockId(lockId)
+		lock.RLock()
 		conn = db.lockConnections[lockId]
-		lock.Unlock()
+		lock.RUnlock()
 		if conn == nil {
 			return nil, errors.NewDatabaseError("impossible to find connection for lock advisory")
 		}
@@ -436,6 +444,7 @@ func (db *PostgresDB) ExecTaskWithDistributedLock(ctx context.Context, lockId in
 	}
 
 	// Add the connection to the lock connections map
+	lock := db.loadOrStoreLockId(lockId)
 	lock.Lock()
 	db.lockConnections[lockId] = conn
 	lock.Unlock()
@@ -462,7 +471,7 @@ func (db *PostgresDB) ExecTaskWithDistributedLock(ctx context.Context, lockId in
 // by the method ReleaseDistributedLock
 func (db *PostgresDB) AcquireDistributedLock(ctx context.Context, lockId int64) (int64, error) {
 	if lockId == 0 {
-		return 0, errors.NewDatabaseError("o is not allowed as lockId")
+		return 0, errors.NewDatabaseError("0 is not allowed as lockId")
 	}
 
 	conn, err := acquireConnectionFromPool(ctx, db)
@@ -471,6 +480,7 @@ func (db *PostgresDB) AcquireDistributedLock(ctx context.Context, lockId int64) 
 	}
 
 	// Add the connection to the lock connections map
+	lock := db.loadOrStoreLockId(lockId)
 	lock.Lock()
 	db.lockConnections[lockId] = conn
 	lock.Unlock()
@@ -510,7 +520,11 @@ func acquireAdvisoryLock(ctx context.Context, conn *pgxpool.Conn, lockId int64) 
 }
 
 func (db *PostgresDB) ReleaseDistributedLock(ctx context.Context, lockId int64) error {
-	if conn, exist := db.lockConnections[lockId]; exist {
+	lock := db.loadOrStoreLockId(lockId)
+	lock.RLock()
+	conn, exist := db.lockConnections[lockId]
+	lock.RUnlock()
+	if exist {
 		defer conn.Release()
 		return releaseAdvisoryLock(ctx, conn, lockId)
 	} else {
@@ -619,4 +633,10 @@ func (t *PostgresTx) TxExecBatch(ctx context.Context, batch database.Batch) (int
 	}
 
 	return rowUpdated, nil
+}
+
+// loadOrStoreLockId - get or create a lock for a given lockId.
+func (db *PostgresDB) loadOrStoreLockId(lockId int64) *sync.RWMutex {
+	lock, _ := db.lockMap.LoadOrStore(lockId, &sync.RWMutex{})
+	return lock.(*sync.RWMutex)
 }

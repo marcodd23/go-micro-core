@@ -61,7 +61,7 @@ jobs:
 
 
       #################################
-      ## Build and Test
+      ## Go Build and Test
       #################################
 
       - name: Build
