@@ -21,8 +21,12 @@ var errorMessages = map[ErrorCode]string{
 	ErrorConvertingToProto:        "error converting to proto message",
 	ErrorSerializingProtoMessage:  "error serializing proto message",
 	ErrorSerializingJsonMessage:   "error serializing json message",
-	ErrorClosingPubsubClient:      "error closing pubsub client",
+	ErrorClosingPubsubClient:      "error closing cloud_pubsub client",
 }
+
+// ============================================
+// Message Error
+// ============================================
 
 // Error - General PubSub Error.
 type Error struct {

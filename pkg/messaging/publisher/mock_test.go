@@ -3,7 +3,8 @@ package publisher_test
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -24,7 +25,7 @@ func (c *MockClient) Close() error {
 // MockTopic - mock a messaging.Topic
 type MockTopic struct {
 	topic                     *pubsub.Topic
-	publishFunc               func(ctx context.Context, msg publisher.Message) publisher.PublishResult
+	publishFunc               func(ctx context.Context, msg messaging.Message) publisher.PublishResult
 	stopFunc                  func()
 	flushFunc                 func()
 	stringFunc                func() string
@@ -32,7 +33,7 @@ type MockTopic struct {
 	configPublishSettingsFunc func(config func(topic *pubsub.Topic))
 }
 
-func (t MockTopic) Publish(ctx context.Context, msg publisher.Message) publisher.PublishResult {
+func (t MockTopic) Publish(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 	return t.publishFunc(ctx, msg)
 }
 

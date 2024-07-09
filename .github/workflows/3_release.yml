@@ -1,0 +1,87 @@
+name: Release Workflow
+concurrency:
+  group: release-new-feature
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump-type:
+        description: 'Version bump type (patch, minor, major)'
+        required: true
+        type: choice
+        options:
+          - minor
+          - major
+          - patch
+#      custom-tag:
+#        description: 'Custom tag to give to this release'
+#        required: false
+#        default: ''
+
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  release_feature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      #################################
+      ## VERSIONING
+      #################################
+      - name: Bump Release Version
+        id: bump_and_tag_release_version
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: ${{ github.event.inputs.bump-type }}
+          WITH_V: true
+          PRERELEASE: false
+          INITIAL_VERSION: 0.0.0
+          RELEASE_BRANCHES: master
+          DEFAULT_BRANCH: master
+          TAG_CONTEXT: branch
+          BRANCH_HISTORY: compare
+          DRY_RUN: false
+          VERBOSE: true
+
+      # Setting the Release Version
+      - name: Set Release version environment
+        run: |
+          echo "PREV_RELEASE_VERSION=${{ steps.bump_and_tag_release_version.outputs.old_tag }}" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=${{ steps.bump_and_tag_release_version.outputs.new_tag }}" >> $GITHUB_ENV
+
+
+      #################################
+      ## CHANGELOG AND RELEASE
+      #################################
+      - name: Generate Changelog
+        id: generate_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/release-changelog-config.json"
+          fromTag: ${{ env.PREV_RELEASE_VERSION }}
+          toTag: ${{ env.RELEASE_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

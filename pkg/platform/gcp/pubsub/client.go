@@ -4,8 +4,13 @@ package pubsub
 import (
 	"cloud.google.com/go/pubsub"
 	"context"
-	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 )
+
+// ============================================
+// PubSub Client Implementation
+// ============================================
 
 // pubSubClient - publisher.Client implementation for PubSub.
 type pubSubClient struct {
@@ -21,14 +26,18 @@ func (w *pubSubClient) Close() error {
 	return w.client.Close()
 }
 
+// ============================================
+// PubSub Topic Implementation
+// ============================================
+
 // pubSubTopic - publisher.Topic implementation for PubSub.
 type pubSubTopic struct {
 	topic *pubsub.Topic
 }
 
-func (w *pubSubTopic) Publish(ctx context.Context, msg publisher.Message) publisher.PublishResult {
+func (w *pubSubTopic) Publish(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 	pubSubMessage := &pubsub.Message{
-		Attributes: msg.GetAttributes(),
+		Attributes: msg.GetPayloadAttributes(),
 		Data:       msg.GetPayload(),
 	}
 	return pubSubPublishResult{publishResult: w.topic.Publish(ctx, pubSubMessage)}
@@ -50,6 +59,10 @@ func (w *pubSubTopic) ConfigPublishSettings(config publisher.TopicPublishConfig)
 	w.topic.PublishSettings.CountThreshold = int(config.BatchSize)
 	w.topic.PublishSettings.DelayThreshold = config.FlushDelayThreshold
 }
+
+// ============================================
+// PubSub Publish Result Implementation
+// ============================================
 
 // pubSubPublishResult - publisher.PublishResult implementation for PubSub.
 type pubSubPublishResult struct {

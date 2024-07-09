@@ -1,0 +1,91 @@
+name: Prerelease Beta Workflow
+concurrency:
+  group: beta-feature-tag
+  cancel-in-progress: false
+
+on:
+  push:
+    branches:
+      - master
+
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  release_beta_feature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      #################################
+      ## Go Caching
+      #################################
+
+      - name: Cache Go build
+        id: cache-go-build
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
+      - name: Cache Go modules
+        id: cache-go-mod
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          cache: true
+          check-latest: true
+          go-version-file: 'go.mod'
+
+      #################################
+      ## Build and Test
+      #################################
+
+      - name: Build and Test
+        run: make build
+        env:
+          GOMODCACHE: /home/runner/go/pkg/mod
+          GOCACHE: /home/runner/.cache/go-build
+
+      #################################
+      ## VERSIONING
+      #################################
+      - name: Bump and Tag Beta Version
+        id: bump_and_tag_beta_version
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+          PRERELEASE_SUFFIX: beta
+          RELEASE_BRANCHES: not_applicable
+          DEFAULT_BRANCH: master
+          BRANCH_HISTORY: compare
+          PRERELEASE: true
+          DRY_RUN: false
+          VERBOSE: true
+
+
+      # Setting the Release Version
+      - name: Set Release version environment
+        run: |
+          echo "BETA_VERSION=${{ steps.bump_and_tag_beta_version.outputs.new_tag }}" >> $GITHUB_ENV
+          echo "BETA version ${{ env.BETA_VERSION }}"

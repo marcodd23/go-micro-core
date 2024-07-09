@@ -2,13 +2,20 @@ package publisher
 
 import (
 	"context"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"time"
 )
 
 const (
-	DefaultInitialRetryInterval = 50 * time.Millisecond
-	DefaultFlushDelayThreshold  = time.Millisecond * 10
+	DefaultInitialRetryInterval       = 50 * time.Millisecond
+	DefaultFlushDelayThreshold        = time.Millisecond * 10
+	DefaultMaxRetryCount        int16 = 3
+	DefaultBatchSize            int32 = 1000
 )
+
+// ============================================
+// Client Interface
+// ============================================
 
 // Client -  Client wrapper interface.
 type Client interface {
@@ -16,20 +23,32 @@ type Client interface {
 	Close() error
 }
 
+// ============================================
+// Topic Interface
+// ============================================
+
 // Topic - Topic wrapper interface.
 type Topic interface {
-	Publish(ctx context.Context, msg Message) PublishResult
+	Publish(ctx context.Context, msg messaging.Message) PublishResult
 	Stop()
 	Flush()
 	String() string
 	ConfigPublishSettings(config TopicPublishConfig)
 }
 
+// ============================================
+// Publish Result Interface
+// ============================================
+
 // PublishResult - PubSub Publish Result wrapper interface.
 type PublishResult interface {
 	Get(ctx context.Context) (string, error)
 	Ready() <-chan struct{}
 }
+
+// ============================================
+// Publisher Configuration
+// ============================================
 
 // TopicPublishConfig - configuration struct for the publisher.
 type TopicPublishConfig struct {

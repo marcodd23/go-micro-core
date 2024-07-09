@@ -2,9 +2,9 @@ package pubsub_test
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro/pkg/messaging/publisher"
-	"github.com/marcodd23/go-micro/pkg/platform/gcp/pubsub"
-	"github.com/marcodd23/go-micro/test/testcontainer"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
+	"github.com/marcodd23/go-micro-core/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -30,12 +30,12 @@ func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
+	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, 0, 1, 0, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 
 	// Test publishing a single message.
-	err = bp.Publish(ctx, "test-topic", &publisher.MsgPayload{Data: []byte("TestMessage1")})
+	err = bp.Publish(ctx, "test-topic", &pubsub.Message{Data: []byte("TestMessage1")})
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
@@ -68,12 +68,12 @@ func TestPubSubBufferedPublisher_With_Retry_Json(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, nil, 3, nil, connOptions...)
+	bp, err := pubsub.NewBufferedPublisherWithRetryFactory(ctx, "test-project", 1, 0, 1, 0, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 
 	// Test publishing a single message.
-	err = bp.Publish(ctx, "test-topic", &publisher.MsgPayload{Data: []byte("TestMessage1")})
+	err = bp.Publish(ctx, "test-topic", &pubsub.Message{Data: []byte("TestMessage1")})
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
@@ -110,7 +110,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 	require.NoError(t, err)
 	// defer bp.Close()
 
-	payload1 := &publisher.MsgPayload{
+	payload1 := &pubsub.Message{
 		MessageId: "message1",
 		Data:      []byte("test-message-1"),
 		Attributes: map[string]string{
@@ -120,7 +120,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 		},
 	}
 
-	payload2 := &publisher.MsgPayload{
+	payload2 := &pubsub.Message{
 		MessageId: "message2",
 		Data:      []byte("test-message-2"),
 		Attributes: map[string]string{
@@ -130,7 +130,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 		},
 	}
 
-	batch := []publisher.Message{payload1, payload2}
+	batch := []messaging.Message{payload1, payload2}
 
 	// Test publishing a single message.
 	batchRes, err := bp.Publish(ctx, "test-topic", batch)
