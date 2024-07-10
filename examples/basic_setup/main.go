@@ -33,7 +33,7 @@ func main() {
 
 	// Setup Routes
 	serverManager.Setup(rootCtx, func(appServer *fiber.App) {
-		appServer.Group("/opoa/nexus/api")
+		appServer.Group("/api")
 		appServer.Get("/", func(c *fiber.Ctx) error {
 			return c.SendString("Hello, World!")
 		})
