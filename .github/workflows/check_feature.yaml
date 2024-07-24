@@ -25,9 +25,56 @@ permissions:
   repository-projects: write
 
 jobs:
-  check_feature:
+  checking-changed-files:
     runs-on: ubuntu-latest
+    outputs:
+      gha_files_changed: ${{ steps.files_changed_step.outputs.gha_files_changed }}
+      go_files_changed: ${{ steps.files_changed_step.outputs.go_files_changed }}
+      makefile_changed: ${{ steps.files_changed_step.outputs.makefile_changed }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: $(${{ inputs.pull_request_commits }} + 1)
+          ref: ${{ inputs.pull_request_head_sha }}
+          fetch-tags: false
+      #          fetch-depth: $(${{ github.event.pull_request.commits }} + 1)
 
+      - name: set output variables
+        id: files_changed_step
+        env:
+          PR_BASE_SHA: ${{ inputs.pull_request_base_sha }}
+          #          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ inputs.pull_request_head_sha }}
+        #          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files_changed=$(git diff --name-only "$PR_BASE_SHA" "$PR_HEAD_SHA")
+          
+          {
+            echo "dockerfile_changed=false"
+            echo "gha_files_changed=false"
+            echo "go_files_changed=false"
+            echo "makefile_changed=false"
+            echo "terraform_files_changed=false"
+          } >> "$GITHUB_OUTPUT"
+          
+          if (grep -q ".github/workflows/" <<< "$files_changed") then
+            echo "gha_files_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          
+          if (grep -q "go.mod\|go.sum\|.*.go" <<< "$files_changed") then
+            echo "go_files_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          
+          if (grep -q "Makefile" <<< "$files_changed") then
+            echo "makefile_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          
+
+  go-tests:
+    runs-on: ubuntu-latest
+    needs: checking-changed-files
+    if: needs.checking-changed-files.outputs.go_files_changed == 'true'
     steps:
       - name: checkout code
         uses: actions/checkout@v4
