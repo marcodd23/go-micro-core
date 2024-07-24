@@ -27,7 +27,7 @@ jobs:
     secrets: inherit
     with:
       pull_request_commits: 1
-      pull_request_head_sha: ${{ github.event.head }}
+      pull_request_head_sha: ${{ github.sha }}
       pull_request_base_sha: ${{ github.event.before }}
 
   create-tag:
