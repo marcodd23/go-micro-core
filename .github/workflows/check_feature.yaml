@@ -1,4 +1,4 @@
-name: Check feature Workflow
+name: check feature
 concurrency:
   group: check-and-alpha-tag
   cancel-in-progress: false
