@@ -62,7 +62,7 @@ func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.M
 	}()
 }
 
-// Stage and Message implementations (replace with actual implementations)
+// FirstStage and Message implementations (replace with actual implementations)
 type FirstStage struct {
 	Name string
 }
