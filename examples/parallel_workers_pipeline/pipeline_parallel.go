@@ -72,8 +72,8 @@ func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline
 	//workerID, _ := ctx.Value(workerIDKey).(int)
 	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
-	// Implement the processing logic here
-	// For example, modify the message payload or attributes
+	// Implement the processing logic here.
+	// For example, modify the message payload or attributes.
 
 	return msg, nil
 }
