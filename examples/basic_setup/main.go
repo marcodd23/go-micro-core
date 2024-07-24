@@ -29,6 +29,8 @@ func main() {
 
 	logmgr.SetupLogger(config)
 
+	//setupDatabase(rootCtx, config, []database.PreparedStatement{})
+
 	serverManager := fibersrv.NewFiberServer(config)
 
 	// Setup Routes
@@ -42,11 +44,13 @@ func main() {
 	// Start server
 	serverManager.RunAsync()
 
+	// ######### MAIN APPLICATION CODE
 	wg := sync.WaitGroup{}
 	appCtx, cancelAppCtx := context.WithCancel(rootCtx)
 	defer cancelAppCtx()
 
 	InfinitePolling(appCtx, &wg)
+	// ###################################
 
 	shutdown.WaitForShutdown(rootCtx, ShutdownTimeoutMilli, func(timeoutCtx context.Context) {
 		serverManager.Shutdown(timeoutCtx)

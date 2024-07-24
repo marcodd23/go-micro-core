@@ -30,7 +30,13 @@ func main() {
 	appCtx, cancelAppCtx := context.WithCancel(rootCtx)
 	defer cancelAppCtx()
 
-	ExecutePipelineSimulationTwo(appCtx, &wg)
+	inputChan, outputChan := SetupAndStartParallelWorkersPipeline(appCtx, &wg)
+
+	// Run Producer
+	StartEventsProducerMock(appCtx, inputChan)
+
+	// Run Consumer
+	StartEventsConsumerMock(appCtx, outputChan)
 
 	shutdown.WaitForShutdown(rootCtx, ShutdownTimeoutMilli, func(timeoutCtx context.Context) {
 		cancelAppCtx()

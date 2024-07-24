@@ -49,16 +49,16 @@ func NewOrchestrator(pipelines map[string]Config) *Orchestrator {
 //
 // Parameters:
 // - cancelCtx: A context that can be used to cancel the processing.
-// - wg: A wait group to wait for all processing to complete.
+// - wg: A wait group to wait for all processing goroutines to complete.
 func (o *Orchestrator) Execute(cancelCtx context.Context, wg *sync.WaitGroup) {
 	for name, config := range o.pipelines {
 		for j := 0; j < config.NumWorkers; j++ {
 			wg.Add(1)
 			workerID := j
-			go func(pipelineName string, pipelineConfig Config, workerID int) {
+			go func(ctx context.Context, pipelineName string, pipelineConfig Config, workerID int) {
 				defer wg.Done()
-				o.processMessages(cancelCtx, pipelineName, pipelineConfig, workerID)
-			}(name, config, workerID)
+				o.processMessages(ctx, pipelineName, pipelineConfig, workerID)
+			}(cancelCtx, name, config, workerID)
 		}
 	}
 }

@@ -28,7 +28,10 @@ func main() {
 	appCtx, cancelAppCtx := context.WithCancel(rootCtx)
 	defer cancelAppCtx()
 
-	ExecutePipelineSimulation(appCtx, &wg)
+	// Setup the simple single worker pipeline
+	pipelineInputCh := SetupAndStartPipeline(appCtx, &wg)
+
+	SimulateEventsProducer(appCtx, pipelineInputCh)
 
 	shutdown.WaitForShutdown(rootCtx, ShutdownTimeoutMilli, func(timeoutCtx context.Context) {
 		cancelAppCtx()

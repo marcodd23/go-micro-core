@@ -1,6 +1,6 @@
 package messaging
 
-// Message - cloud_pubsub message payload interface
+// Message - message payload interface
 type Message interface {
 	GetMsgRefId() string
 	GetPayload() []byte

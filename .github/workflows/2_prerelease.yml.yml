@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       #################################
-      ## Caching
+      ## Go Caching
       #################################
 
       - name: Set Weekly Cache Key
@@ -61,7 +61,7 @@ jobs:
 
 
       #################################
-      ## Go Build and Test
+      ## Build and Test
       #################################
 
       - name: Build

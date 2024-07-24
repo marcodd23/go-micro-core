@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
 
       #################################
-      ## Caching
+      ## Go Caching
       #################################
 
       - name: Set Weekly Cache Key
@@ -70,7 +70,6 @@ jobs:
           cache: true
           check-latest: true
           go-version-file: 'go.mod'
-
 
       #################################
       ## Build and Test

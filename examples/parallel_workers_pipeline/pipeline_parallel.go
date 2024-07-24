@@ -8,10 +8,10 @@ import (
 	"sync"
 )
 
-func ExecutePipelineSimulationTwo(appCtx context.Context, wg *sync.WaitGroup) {
+func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitGroup) (inputChan chan pipeline.Message, outputChan chan pipeline.Message) {
 	// Create input and output channels
-	inputChan := make(chan pipeline.Message, 100)
-	outputChan := make(chan pipeline.Message, 100)
+	inputChan = make(chan pipeline.Message, 100)
+	outputChan = make(chan pipeline.Message, 100)
 
 	// Create the stages for the pipeline
 	stages := []pipeline.Stage{
@@ -38,14 +38,10 @@ func ExecutePipelineSimulationTwo(appCtx context.Context, wg *sync.WaitGroup) {
 	// Execute the parallel pipeline
 	orchestrator.Execute(appCtx, wg)
 
-	// Run Producer
-	StartProducer(appCtx, inputChan)
-
-	// Run Consumer
-	StartConsumer(appCtx, outputChan)
+	return inputChan, outputChan
 }
 
-func StartConsumer(appCtx context.Context, outputChan <-chan pipeline.Message) {
+func StartEventsConsumerMock(appCtx context.Context, outputChan <-chan pipeline.Message) {
 	// Handle the output messages if needed
 	go func() {
 		for msg := range outputChan {
@@ -54,7 +50,7 @@ func StartConsumer(appCtx context.Context, outputChan <-chan pipeline.Message) {
 	}()
 }
 
-func StartProducer(appCtx context.Context, inputChan chan<- pipeline.Message) {
+func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.Message) {
 	// Simulate incoming messages
 	go func() {
 		for i := 0; i < 10; i++ {
@@ -74,11 +70,11 @@ type FirstStage struct {
 func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Worker %d processing message %s at stage %s", workerID, msg.GetMsgRefId(), s.Name))
-	// Implement your processing logic here
+	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
+
+	// Implement the processing logic here
 	// For example, modify the message payload or attributes
 
-	logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 	return msg, nil
 }
 
@@ -89,11 +85,10 @@ type SecondStage struct {
 func (s SecondStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Worker %d processing message %s at stage %s", workerID, msg.GetMsgRefId(), s.Name))
+	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
-	// Implement your processing logic here
+	// Implement the processing logic here
 	// For example, modify the message payload or attributes
 
-	logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 	return msg, nil
 }

@@ -8,23 +8,11 @@ import (
 	"sync"
 )
 
-func StartProducer(appCtx context.Context, inputChan chan<- pipeline.Message) {
-	// Simulate incoming messages
-	go func() {
-		for i := 0; i < 10; i++ {
-			msg := pipeline.NewPipelineMessage(fmt.Sprintf("messageId%d", i), []byte("message body"), map[string]string{"key": "value"}, map[string]interface{}{"attrKey": "attrValue"})
-			inputChan <- msg
-			logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Sent message %s to input channel", msg.GetMsgRefId()))
-		}
-		close(inputChan) // Close the input channel to signal no more messages
-	}()
-}
-
-func ExecutePipelineSimulation(appCtx context.Context, wg *sync.WaitGroup) {
+func SetupAndStartPipeline(appCtx context.Context, wg *sync.WaitGroup) chan<- pipeline.Message {
 	// Create pipeline stages and pipeline
 	stages := []pipeline.Stage{
 		&pipeline.NamedStage{Name: "# FIRST #", Stage: &FirstStage{Name: "# FIRST #"}},
-		&pipeline.NamedStage{Name: "# SECOND #", Stage: &SecondStage{Name: "# FIRST #"}},
+		&pipeline.NamedStage{Name: "# SECOND #", Stage: &SecondStage{Name: "# SECOND #"}},
 	}
 
 	pipe := pipeline.NewPipeline("Pipeline-1", stages)
@@ -39,21 +27,32 @@ func ExecutePipelineSimulation(appCtx context.Context, wg *sync.WaitGroup) {
 		processMessages(appCtx, pipe, inputChannel)
 	}()
 
-	// Simulate incoming messages
-	// Simulate incoming messages
-	StartProducer(appCtx, inputChannel)
+	// Return the pipeline inputChannel
+	return inputChannel
 }
 
 func processMessages(appCtx context.Context, pipe *pipeline.Pipeline, msgs <-chan pipeline.Message) {
 	for msg := range msgs {
-		logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Starting processing message %s", msg.GetMsgRefId()))
+		logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Start PIPELINE for message: %s", msg.GetMsgRefId()))
 		processedMsg, err := pipe.Process(appCtx, msg)
 		if err != nil {
-			logmgr.GetLogger().LogError(appCtx, fmt.Sprintf("Processing message %s: %v", msg.GetMsgRefId(), err))
+			logmgr.GetLogger().LogError(appCtx, fmt.Sprintf("error pipeline for message: %s: %v", msg.GetMsgRefId(), err))
 			continue
 		}
-		logmgr.GetLogger().LogInfo(appCtx, fmt.Sprintf("Finished processing message %s successfully", processedMsg.GetMsgRefId()))
+		logmgr.GetLogger().LogInfo(appCtx, fmt.Sprintf("Completed Pipeline for message: %s successfully", processedMsg.GetMsgRefId()))
 	}
+}
+
+func SimulateEventsProducer(appCtx context.Context, inputChan chan<- pipeline.Message) {
+	// Simulate incoming messages
+	go func() {
+		for i := 0; i < 10; i++ {
+			msg := pipeline.NewPipelineMessage(fmt.Sprintf("messageId%d", i), []byte("message body"), map[string]string{"key": "value"}, map[string]interface{}{"attrKey": "attrValue"})
+			inputChan <- msg
+			logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Sent message %s to input channel", msg.GetMsgRefId()))
+		}
+		close(inputChan) // Close the input channel to signal no more messages
+	}()
 }
 
 // Stage and Message implementations (replace with actual implementations)
@@ -64,8 +63,7 @@ type FirstStage struct {
 func (s *FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Worker %d processing message %s at stage %s", workerID, msg.GetMsgRefId(), s.Name))
-	logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
+	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
 	// Implement your processing logic here
 	// For example, modify the message payload or attributes
@@ -79,9 +77,7 @@ type SecondStage struct {
 func (s *SecondStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Worker %d processing message %s at stage %s", workerID, msg.GetMsgRefId(), s.Name))
-
-	logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
+	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
 	// Implement your processing logic here
 	// For example, modify the message payload or attributes
