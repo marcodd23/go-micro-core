@@ -46,6 +46,7 @@ jobs:
 
   pre-release-tag:
     runs-on: ubuntu-latest
+    needs: check-feature
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

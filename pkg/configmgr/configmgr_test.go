@@ -51,7 +51,7 @@ func TestLoadConfigFromFile(t *testing.T) {
 	var cfg TestConfiguration
 	err := configmgr.ReadConfiguration(configFilePath, &cfg)
 	assert.NoError(t, err)
-	assert.Equal(t, "1", cfg.GetServiceName())
+	assert.Equal(t, "TestApp", cfg.GetServiceName())
 	assert.Equal(t, "development", cfg.GetEnvironment())
 	assert.NotNil(t, cfg.Logging)
 	assert.Equal(t, "debug", cfg.Logging.Level)
