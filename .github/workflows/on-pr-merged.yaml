@@ -21,26 +21,26 @@ permissions:
 
 jobs:
 
-  get-commits:
-    runs-on: ubuntu-latest
-    outputs:
-      commits: ${{ steps.get-commits.outputs.commits }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Get commit list
-        id: get-commits
-        run: |
-          commits=$(git log --oneline --no-merges ${{ github.event.before }}..${{ github.sha }})
-          echo "commits=$commits" >> "$GITHUB_OUTPUT"
+#  get-commits:
+#    runs-on: ubuntu-latest
+#    outputs:
+#      commits: ${{ steps.get-commits.outputs.commits }}
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#
+#      - name: Get commit list
+#        id: get-commits
+#        run: |
+#          commits=$(git log --oneline --no-merges ${{ github.event.before }}..${{ github.sha }})
+#          echo "commits=$commits" >> "$GITHUB_OUTPUT"
 
   check-feature:
     name: "check-feature"
     uses: ./.github/workflows/check_feature.yaml
     secrets: inherit
     with:
-      pull_request_commits: ${{ needs.get-commits.outputs.commits }}
+      pull_request_commits: 1
       pull_request_head_sha: ${{ github.sha }}
       pull_request_base_sha: ${{ github.event.before }}
 
