@@ -5,6 +5,7 @@ on:
 
 concurrency:
   group: versioning
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -53,6 +54,7 @@ jobs:
           -H "X-GitHub-Api-Version: 2022-11-28" \
           /repos/${{ github.repository }}/releases/latest | jq --raw-output '.tag_name // ""')
           echo "version=$latest_tag" >> "$GITHUB_OUTPUT"
+          echo "version=$latest_tag"
 
 
   delete-previous-pre-release:
