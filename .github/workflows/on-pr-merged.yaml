@@ -1,4 +1,4 @@
-name: Prerelease Beta Workflow
+name: on PR merged
 concurrency:
   group: versioning
   cancel-in-progress: false
@@ -21,20 +21,6 @@ permissions:
 
 jobs:
 
-#  get-commits:
-#    runs-on: ubuntu-latest
-#    outputs:
-#      commits: ${{ steps.get-commits.outputs.commits }}
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - name: Get commit list
-#        id: get-commits
-#        run: |
-#          commits=$(git log --oneline --no-merges ${{ github.event.before }}..${{ github.sha }})
-#          echo "commits=$commits" >> "$GITHUB_OUTPUT"
-
   check-feature:
     name: "check-feature"
     uses: ./.github/workflows/check_feature.yaml
@@ -44,7 +30,7 @@ jobs:
       pull_request_head_sha: ${{ github.sha }}
       pull_request_base_sha: ${{ github.event.before }}
 
-  pre-release-tag:
+  create-tag:
     runs-on: ubuntu-latest
     needs: check-feature
     steps:
