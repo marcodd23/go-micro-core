@@ -44,7 +44,7 @@ jobs:
 
   tag_feature:
     name: "Alpha Tag"
-    needs: check_feature
+    needs: check-feature
     if: ${{ github.event.pull_request.merged == false && github.event.pull_request.user.login != 'dependabot[bot]'}}
     runs-on: ubuntu-latest
     concurrency:
