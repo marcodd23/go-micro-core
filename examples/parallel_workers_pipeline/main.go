@@ -42,7 +42,6 @@ func main() {
 		cancelAppCtx()
 		wg.Wait()
 	})
-
 }
 
 func loadConfiguration() *ServiceConfig {
