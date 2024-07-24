@@ -1,11 +1,32 @@
 {
+  "template": "${{CHANGELOG}}",
   "categories": [
-    { "title": "🚀 Features", "labels": ["feature"] },
-    { "title": "🐛 Bug Fixes", "labels": ["bug", "bugfix", "fix"] },
+    { "title": "🚀 Features", "labels": ["feature", "feat"] },
+    { "title": "🤖 Ci", "labels": ["ci", "cicd"] },
+    { "title": "🧹 Chore", "labels": ["chore", "maintenance"] },
+    { "title": "📝 Docs", "labels": ["docs", "documentation"] },
+    { "title": "🏗️ Build", "labels": ["build"] },
+    { "title": "🐛️ Fix", "labels": ["fix", "bugfix"] },
+    { "title": "🛠️ Refactor", "labels": ["refactor"] },
+    { "title": "⚡️ Perf", "labels": ["perf", "performance"] },
     { "title": "🧪 Tests", "labels": ["test", "tests"] },
-    { "title": "🛠 Maintenance", "labels": ["chore", "maintenance", "documentation", "enhancement"] },
+    { "title": "💄 Style", "labels": ["style"] },
     { "title": "🔄 Dependencies", "labels": ["dependencies"] },
+    { "title": "🔒 Security", "labels": ["security"] },
+    { "title": "🔖 Version", "labels": ["version"] },
+    { "title": "🚧 WIP", "labels": ["wip"] },
     { "title": "Other Changes", "labels": [] }
   ],
-  "template": "${{CHANGELOG}}"
+  "label_extractor": [
+    {
+      "pattern": "^(feat|ci|chore|docs|build|fix|refactor|perf|test|style)(\\([\\w\\-\\.]+\\))?(!)?: (.+)",
+      "target": "$1",
+      "on_property": "title"
+    },
+    {
+      "pattern": "^(feat|ci|chore|docs|build|fix|refactor|perf|test|style)(\\([\\w\\-\\.]+\\))?(!)?: (.+)",
+      "target": "$1",
+      "on_property": "body"
+    }
+  ]
 }

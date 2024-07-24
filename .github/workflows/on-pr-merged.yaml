@@ -1,0 +1,74 @@
+name: Prerelease Beta Workflow
+concurrency:
+  group: versioning
+  cancel-in-progress: false
+
+on:
+  push:
+    branches:
+      - master
+    tags-ignore:
+      - '**'
+
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+
+  get-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      commits: ${{ steps.get-commits.outputs.commits }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get commit list
+        id: get-commits
+        run: |
+          commits=$(git log --oneline --no-merges ${{ github.event.before }}..${{ github.sha }})
+          echo "commits=$commits" >> "$GITHUB_OUTPUT"
+
+  check-feature:
+    name: "check-feature"
+    uses: ./.github/workflows/check_feature.yaml
+    secrets: inherit
+    with:
+      pull_request_commits: ${{ needs.get-commits.outputs.commits }}
+      pull_request_head_sha: ${{ github.sha }}
+      pull_request_base_sha: ${{ github.event.before }}
+
+  pre-release-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      #################################
+      ## Calculate Version and tag
+      #################################
+      # Prepare release version bumping previous tag and pushing new one
+      # https://github.com/marketplace/actions/github-tag-bump
+      - name: Bump version
+        id: bump_version_generator
+        uses: anothrNick/github-tag-action@1.70.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+          INITIAL_VERSION: 0.0.0
+          RELEASE_BRANCHES: master
+          DEFAULT_BRANCH: master
+          DRY_RUN: false
+          VERBOSE: true
+
+      - name: Print new Version
+        run: echo "NEW VERSION=${{ steps.bump_version_generator.outputs.new_tag }}"

@@ -1,0 +1,105 @@
+name: trigger pre-release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: versioning
+
+permissions:
+  contents: write
+  deployments: write
+  id-token: write
+  repository-projects: write
+  pull-requests: write
+
+
+jobs:
+  pre-release-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      new_prerelease_tag: ${{ steps.last_semantic_version_tag.outputs.tag }}
+      last_release_tag: ${{ steps.last_release_tag.outputs.version }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4.1.7
+        with:
+          fetch-depth: 0
+
+      ######################################################
+      ## Get Later Release Version and semantic version tag
+      ######################################################
+      # Prepare release version bumping previous tag and pushing new one
+      # https://github.com/marketplace/actions/github-tag-bump
+      - name: get latest semantic version tag
+        id: last_semantic_version_tag
+        uses: anothrNick/github-tag-action@1.70.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+          INITIAL_VERSION: 0.0.0
+          RELEASE_BRANCHES: master
+          DEFAULT_BRANCH: master
+          DRY_RUN: true
+          VERBOSE: true
+
+      - name: get latest released tag
+        id: last_release_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          latest_tag=$(gh api -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/${{ github.repository }}/releases/latest | jq --raw-output '.tag_name // ""')
+          echo "version=$latest_tag" >> "$GITHUB_OUTPUT"
+
+
+  delete-previous-pre-release:
+    runs-on: ubuntu-latest
+    needs: pre-release-tag
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NEW_PRERELEASE_TAG: ${{ needs.pre-release-tag.outputs.new_prerelease_tag }}
+      LAST_RELEASE_TAG: ${{ needs.pre-release-tag.outputs.last_release_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get and delete previous pre-releases
+        run: ./.github/scripts/delete_previous_prereleases.sh
+
+  create-pre-release:
+    runs-on: ubuntu-latest
+    needs: [pre-release-tag, delete-previous-pre-release]
+    env:
+      fromTag: ${{ needs.pre-release-tag.outputs.last_release_tag }}
+      toTag: ${{ needs.pre-release-tag.outputs.new_prerelease_tag }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4.1.7
+        with:
+          fetch-depth: 0
+      ###############################
+      # create-prerelease
+      ###############################
+      - name: Generate Changelog
+        id: generate_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/release-changelog-config.json"
+          fromTag: ${{ env.fromTag }}
+          toTag: ${{ env.toTag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: create pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          tag_name: ${{ needs.pre-release-tag.outputs.new_prerelease_tag }}
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

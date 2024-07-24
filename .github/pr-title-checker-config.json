@@ -1,0 +1,15 @@
+{
+  "LABEL": {
+    "name": "title_needs_formatting",
+    "color": "EEEEEE"
+  },
+  "CHECKS": {
+    "regexp": "^(feat|ci|chore|docs|build|fix|refactor|perf|test|style)(\\([\\w\\-\\.]+\\))?(!)?: (.+)",
+    "ignoreLabels" : ["dont-check-PRs-with-this-label", "meta"]
+  },
+  "MESSAGES": {
+    "success": "All OK",
+    "failure": "Failing PR Title Check, it must follow the conventional commit specification. More about: https://www.conventionalcommits.org. \nExample: feat: add new feature",
+    "notice": ""
+  }
+}
