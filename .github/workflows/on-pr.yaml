@@ -12,8 +12,7 @@ on:
       - reopened
 
 concurrency:
-  group: versioning
-  cancel-in-progress: false
+  group: alpha-versioning
 
 permissions:
   contents: write

@@ -1,7 +1,6 @@
 name: on PR merged
 concurrency:
   group: versioning
-  cancel-in-progress: false
 
 on:
   push:
