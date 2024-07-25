@@ -303,7 +303,7 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 			return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
 		}
 
-		// Create a new PgRowScan for the current row
+		// Create a deep copy of rowElements for returning
 		rowElementsCopy := make([]any, len(rowElements))
 		copy(rowElementsCopy, rowElements)
 		resultSet.RowsScan = append(resultSet.RowsScan, &PgRowScan{Values: rowElementsCopy})
@@ -361,12 +361,14 @@ func (db *PostgresDB) QueryAndProcess(ctx context.Context, lockId int64, process
 			return errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
 		}
 
-		// Create a new PgRowScan for the current row
-		rowElementsCopy := make([]any, len(rowElements))
-		copy(rowElementsCopy, rowElements)
+		// Create a deep copy of rowElements to send to the processCallback function
+		//rowElementsCopy := make([]any, len(rowElements))
+		//copy(rowElementsCopy, rowElements)
 
 		// Process the row.
-		err = processCallback(rowElementsCopy, &PgRowScan{Values: rowElementsCopy})
+		// Here not needed to do a deep copy of rowElements because each row
+		// is processed individually and sequentially by the processCallback function
+		err = processCallback(rowElements, &PgRowScan{Values: rowElements})
 		if err != nil {
 			logmgr.GetLogger().LogError(ctx, fmt.Sprintf("Error processing row value: %v", rowElements), err)
 
