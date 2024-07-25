@@ -53,10 +53,13 @@ func StartPostgresContainerWithInitScript(ctx context.Context, t *testing.T, ini
 		postgres.WithDatabase(MainDbName),
 		postgres.WithUsername(MainDbUser),
 		postgres.WithPassword(MainDbPassword),
+		//postgres.WithSQLDriver("pgx"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(10*time.Second)),
+				WithStartupTimeout(10*time.Second),
+			//wait.ForListeningPort("5432/tcp"),
+		),
 	)
 
 	require.NoError(t, err)
@@ -139,7 +142,7 @@ func SetupDatabaseConnection(ctx context.Context, containers ...*PostgresContain
 			DBName:     container.DbName,
 			User:       container.DbUser,
 			Password:   container.DbPassword,
-			MaxConn:    10, // Increase connection pool size
+			MaxConn:    1, // Increase connection pool size
 		}
 
 		db := pgdb.SetupPostgresDB(ctx, dbConf, container.PrepStatements...)
