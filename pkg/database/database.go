@@ -21,7 +21,7 @@ type InstanceManager interface {
 	CloseDbConnPool()
 	GetConnectionConfig() ConnConfig
 	Query(ctx context.Context, lockId int64, query string, args ...any) (*ResultSet, error)
-	QueryAndProcess(ctx context.Context, lockId int64, processCallback func(row Row) error, query string, args ...any) error
+	QueryAndProcess(ctx context.Context, lockId int64, processCallback func(row Row, rowScan RowScan) error, query string, args ...any) error
 	Exec(ctx context.Context, lockId int64, execQuery string, args ...any) (int64, error)
 	TxBegin(ctx context.Context, lockId int64) (Transaction, error)
 	ExecTransactionalTask(ctx context.Context, lockId int64, task func(ctx context.Context, tx Transaction) error) error
@@ -138,7 +138,7 @@ func (p PreparedStatement) GetQuery() string {
 // ResultSet, Row and RowScan structs
 // ============================================
 
-// Row represents a database row returned as a result.
+// Row represents a testcontainer_pg row returned as a result.
 type Row []any
 
 // RowScan represents a row that can be mapped to dest fields trough Scan function.
