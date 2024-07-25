@@ -20,7 +20,8 @@ type InstanceManager interface {
 	GetConnFromPool(ctx context.Context) (any, error)
 	CloseDbConnPool()
 	GetConnectionConfig() ConnConfig
-	Query(ctx context.Context, lockId int64, query string, args ...any) (*ResultSet, error)
+	Query(ctx context.Context, lockId int64, query string, args ...any) (ResultSet, error)
+	QueryAndClose(ctx context.Context, lockId int64, query string, args ...any) (ResultSet, error)
 	QueryAndProcess(ctx context.Context, lockId int64, processCallback func(row Row, rowScan RowScan) error, query string, args ...any) error
 	Exec(ctx context.Context, lockId int64, execQuery string, args ...any) (int64, error)
 	TxBegin(ctx context.Context, lockId int64) (Transaction, error)
@@ -38,7 +39,8 @@ type InstanceManager interface {
 type Transaction interface {
 	TxCommit(ctx context.Context, lockId int64) error
 	TxRollback(ctx context.Context, lockId int64)
-	TxQuery(ctx context.Context, query string, args ...any) (*ResultSet, error)
+	TxQuery(ctx context.Context, query string, args ...any) (ResultSet, error)
+	TxQueryAndClose(ctx context.Context, query string, args ...any) (ResultSet, error)
 	TxExec(ctx context.Context, query string, args ...any) (int64, error)
 	TxExecBatch(ctx context.Context, batch Batch) (int64, error)
 }
@@ -135,7 +137,7 @@ func (p PreparedStatement) GetQuery() string {
 }
 
 // ============================================
-// ResultSet, Row and RowScan structs
+// DefaultResultSet, Row and RowScan structs
 // ============================================
 
 // Row represents a testcontainer_pg row returned as a result.
@@ -146,29 +148,51 @@ type RowScan interface {
 	Scan(dest ...any) error
 }
 
-// ResultSet represents the query result set.
-type ResultSet struct {
+type ResultSet interface {
+	GetRow(rowIdx int) (Row, error)
+	GetRows() []Row
+	GetRowScan(rowIdx int) (RowScan, error)
+	GetRowsScan() []RowScan
+	Close()
+}
+
+// DefaultResultSet represents the query result set.
+type DefaultResultSet struct {
 	Rows     []Row
 	RowsScan []RowScan
 }
 
 // GetRow - get row by index.
-func (r *ResultSet) GetRow(rowIdx int) (Row, error) {
+func (r *DefaultResultSet) GetRow(rowIdx int) (Row, error) {
 	if rowIdx < 0 || rowIdx >= len(r.Rows) {
-		return Row{}, errorx.NewDatabaseError("Error retrieving ResultSet row, index out of range: %d", rowIdx)
+		return Row{}, errorx.NewDatabaseError("Error retrieving DefaultResultSet row, index out of range: %d", rowIdx)
 	}
 
 	return r.Rows[rowIdx], nil
 }
 
+// GetRows - return all the Row of this resultset.
+func (r *DefaultResultSet) GetRows() []Row {
+	return r.Rows
+}
+
 // GetRowScan - Get row scan.
-func (r *ResultSet) GetRowScan(rowIdx int) (RowScan, error) {
+func (r *DefaultResultSet) GetRowScan(rowIdx int) (RowScan, error) {
 	if rowIdx < 0 || rowIdx >= len(r.RowsScan) {
-		return nil, errorx.NewDatabaseError("Error retrieving ResultSet RowsScan, index out of range: %d", rowIdx)
+		return nil, errorx.NewDatabaseError("Error retrieving DefaultResultSet RowsScan, index out of range: %d", rowIdx)
 	}
 
 	return r.RowsScan[rowIdx], nil
 }
+
+// GetRowsScan - Return all RowScan of this resultset
+func (r *DefaultResultSet) GetRowsScan() []RowScan {
+	return r.RowsScan
+}
+
+// Close - It supposed to be implemented by the derived struct
+// to close the resultset eventually (Rows, RowsScan)
+func (r *DefaultResultSet) Close() {}
 
 // ============================================
 // Utility Functions
