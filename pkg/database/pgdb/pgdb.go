@@ -72,6 +72,8 @@ func (p *PgRowScan) Scan(dest ...any) error {
 			return errorx.NewDatabaseError("destination not a pointer")
 		}
 		// Get the element the pointer points to.
+		// destElem is not a pointer but the value
+		// destValue points to
 		destElem := destValue.Elem()
 
 		// Special case to handle nil values
@@ -97,7 +99,11 @@ func (p *PgRowScan) Scan(dest ...any) error {
 
 		// Handle pointer types
 		if destElem.Kind() == reflect.Ptr {
+			// Create a new instance of the type that destElem points to
+			// So if destElem is ('*int') the destElem.Type() is ('*int')
+			// and newElem := destElem.Type().Elem() is ('int')
 			newElem := reflect.New(destElem.Type().Elem())
+			// Check if the db value's type can be converted to the type of the new element (int)
 			if val.Type().ConvertibleTo(newElem.Elem().Type()) {
 				newElem.Elem().Set(val.Convert(newElem.Elem().Type()))
 				destElem.Set(newElem)
