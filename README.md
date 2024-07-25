@@ -1,7 +1,7 @@
 
 <div>
-    <img src="logo.png" alt="Description" width="200" style="margin-top: 20px; margin-bottom: 0px; margin-left: 0px;"/>
-    <img src="logo2.png" alt="Description" width="250" style="margin-top: 20px; margin-bottom: 0px; margin-left: 0px;"/>
+    <img src="logos/logo1.png" alt="Description" width="200" style="margin-top: 20px; margin-bottom: 0px; margin-left: 0px;"/>
+    <img src="logos/go.png" alt="Description" width="250" style="margin-top: 20px; margin-bottom: 0px; margin-left: 0px;"/>
 </div>
 
 # go-micro-core
