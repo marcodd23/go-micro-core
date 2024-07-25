@@ -9,7 +9,6 @@ on:
       - reopened
       - synchronize
       - edited
-      - reopened
 
 concurrency:
   group: alpha-versioning
@@ -24,6 +23,7 @@ permissions:
 
 jobs:
   pr-title-linting:
+    if: ${{ github.event.pull_request.merged == false }}
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
@@ -37,6 +37,7 @@ jobs:
           configuration_path: .github/pr-title-checker-config.json
 
   check-feature:
+    if: ${{ github.event.pull_request.merged == false }}
     name: "check-feature"
     uses: ./.github/workflows/check_feature.yaml
     secrets: inherit
