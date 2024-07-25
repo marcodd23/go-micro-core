@@ -36,7 +36,7 @@ go get github.com/marcodd23/go-micro-core
 ```
 
 ## Usage
-Here's a basic example to get you started:
+Here's a basic example to get you started or look inside the *./examples* folder
 
 ```go
 
