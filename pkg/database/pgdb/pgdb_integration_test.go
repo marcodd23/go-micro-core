@@ -49,11 +49,11 @@ func TestDatabase(t *testing.T) {
 
 	// Create a cleanup function to restore the snapshot after each sub-test
 	cleanup := func() {
-		err := container.Container.Restore(ctx, postgres.WithSnapshotName("test-snapshot"))
+		err := container.Container.Restore(ctx, postgres.WithSnapshotName(testcontainer.TestSnapshotId))
 		require.NoError(t, err)
 	}
 
-	t.Run("TestQuery", func(t *testing.T) {
+	t.Run("TestQueryAndStream", func(t *testing.T) {
 		defer cleanup()
 
 		waitForDBReady(ctx, t, db)
@@ -77,9 +77,74 @@ func TestDatabase(t *testing.T) {
 		resultSet, err := db.Query(ctx, 0, selectQuery)
 		require.NoError(t, err, "failed to query rows")
 
+		// Close the resultset
+		defer resultSet.Close()
+
 		// Ensure we have 10 rows in the resultSet
-		require.Equal(t, 10, len(resultSet.Rows), "expected 10 rows in resultSet")
-		require.Equal(t, 10, len(resultSet.RowsScan), "expected 10 rows in RowsScan")
+		require.Equal(t, 10, len(resultSet.GetRows()), "expected 10 rows in resultSet")
+		require.Equal(t, 10, len(resultSet.GetRowsScan()), "expected 10 rows in RowsScan")
+
+		// Verify each row content using resultSet.GetRow(i)
+		for i := 0; i < 10; i++ {
+			row, err := resultSet.GetRow(i)
+			require.NoError(t, err, "failed to get row")
+			require.Equal(t, fmt.Sprintf("EntityName%d", i+1), row[1], "unexpected ENTITY_NAME value")
+			require.Equal(t, fmt.Sprintf("EntityKey%d", i+1), row[2], "unexpected ENTITY_KEY value")
+
+			// Marshal EVENT_PAYLOAD to JSON string for comparison
+			eventPayloadJSON, err := json.Marshal(row[3])
+			require.NoError(t, err, "failed to marshal EVENT_PAYLOAD")
+			require.JSONEq(t, fmt.Sprintf(`{"key%d": "value%d"}`, i+1, i+1), string(eventPayloadJSON), "unexpected EVENT_PAYLOAD value")
+		}
+
+		// Verify each row content using resultSet.GetRowScan(i)
+		for i := 0; i < 10; i++ {
+			rowScan, err := resultSet.GetRowScan(i)
+			require.NoError(t, err, "failed to get row scan")
+
+			var messageId int
+			var entityName, entityKey string
+			var eventPayload map[string]interface{}
+			var modifyTs interface{}
+			err = rowScan.Scan(&messageId, &entityName, &entityKey, &eventPayload, &modifyTs)
+			require.NoError(t, err, "failed to scan row")
+			require.Equal(t, fmt.Sprintf("EntityName%d", i+1), entityName, "unexpected ENTITY_NAME value")
+			require.Equal(t, fmt.Sprintf("EntityKey%d", i+1), entityKey, "unexpected ENTITY_KEY value")
+
+			// Marshal EVENT_PAYLOAD to JSON string for comparison
+			eventPayloadJSON, err := json.Marshal(eventPayload)
+			require.NoError(t, err, "failed to marshal EVENT_PAYLOAD")
+			require.JSONEq(t, fmt.Sprintf(`{"key%d": "value%d"}`, i+1, i+1), string(eventPayloadJSON), "unexpected EVENT_PAYLOAD value")
+		}
+	})
+
+	t.Run("TestQueryAndCopy", func(t *testing.T) {
+		defer cleanup()
+
+		waitForDBReady(ctx, t, db)
+
+		// Insert multiple rows into the EVENT_LOG table with varying fields
+		insertQuery := `
+			INSERT INTO EVENT_LOG (ENTITY_NAME, ENTITY_KEY, EVENT_PAYLOAD)
+			VALUES ($1, $2, $3)
+		`
+		for i := 1; i <= 10; i++ {
+			_, err := db.Exec(ctx, 0, insertQuery, fmt.Sprintf("EntityName%d", i), fmt.Sprintf("EntityKey%d", i), fmt.Sprintf(`{"key%d": "value%d"}`, i, i))
+			require.NoError(t, err, "failed to insert row")
+		}
+
+		// Query the rows back from the EVENT_LOG table
+		selectQuery := `
+			SELECT MESSAGE_ID, ENTITY_NAME, ENTITY_KEY, EVENT_PAYLOAD, MODIFY_TS
+			FROM EVENT_LOG
+			ORDER BY MESSAGE_ID
+		`
+		resultSet, err := db.QueryAndClose(ctx, 0, selectQuery)
+		require.NoError(t, err, "failed to query rows")
+
+		// Ensure we have 10 rows in the resultSet
+		require.Equal(t, 10, len(resultSet.GetRows()), "expected 10 rows in resultSet")
+		require.Equal(t, 10, len(resultSet.GetRowsScan()), "expected 10 rows in RowsScan")
 
 		// Verify each row content using resultSet.GetRow(i)
 		for i := 0; i < 10; i++ {
@@ -143,9 +208,79 @@ func TestDatabase(t *testing.T) {
 		resultSet, err := tx.TxQuery(ctx, selectQuery)
 		require.NoError(t, err, "failed to query rows")
 
+		resultSet.Close()
+
 		// Ensure we have 10 rows in the resultSet
-		require.Equal(t, 10, len(resultSet.Rows), "expected 10 rows in resultSet")
-		require.Equal(t, 10, len(resultSet.RowsScan), "expected 10 rows in RowsScan")
+		require.Equal(t, 10, len(resultSet.GetRows()), "expected 10 rows in resultSet")
+		require.Equal(t, 10, len(resultSet.GetRowsScan()), "expected 10 rows in RowsScan")
+
+		// Verify each row content using resultSet.GetRow(i)
+		for i := 0; i < 10; i++ {
+			row, err := resultSet.GetRow(i)
+			require.NoError(t, err, "failed to get row")
+			require.Equal(t, fmt.Sprintf("EntityName%d", i+1), row[1], "unexpected ENTITY_NAME value")
+			require.Equal(t, fmt.Sprintf("EntityKey%d", i+1), row[2], "unexpected ENTITY_KEY value")
+
+			// Marshal EVENT_PAYLOAD to JSON string for comparison
+			eventPayloadJSON, err := json.Marshal(row[3])
+			require.NoError(t, err, "failed to marshal EVENT_PAYLOAD")
+			require.JSONEq(t, fmt.Sprintf(`{"key%d": "value%d"}`, i+1, i+1), string(eventPayloadJSON), "unexpected EVENT_PAYLOAD value")
+		}
+
+		// Verify each row content using resultSet.GetRowScan(i)
+		for i := 0; i < 10; i++ {
+			rowScan, err := resultSet.GetRowScan(i)
+			require.NoError(t, err, "failed to get row scan")
+
+			var messageId int
+			var entityName, entityKey string
+			var eventPayload []byte
+			var modifyTs interface{}
+			err = rowScan.Scan(&messageId, &entityName, &entityKey, &eventPayload, &modifyTs)
+			require.NoError(t, err, "failed to scan row")
+			require.Equal(t, fmt.Sprintf("EntityName%d", i+1), entityName, "unexpected ENTITY_NAME value")
+			require.Equal(t, fmt.Sprintf("EntityKey%d", i+1), entityKey, "unexpected ENTITY_KEY value")
+
+			// Marshal EVENT_PAYLOAD to JSON string for comparison
+			require.JSONEq(t, fmt.Sprintf(`{"key%d": "value%d"}`, i+1, i+1), string(eventPayload), "unexpected EVENT_PAYLOAD value")
+		}
+
+		// Commit the transaction
+		err = tx.TxCommit(ctx, 0)
+		require.NoError(t, err, "failed to commit transaction")
+	})
+
+	t.Run("TestTxQueryWithClone", func(t *testing.T) {
+		defer cleanup()
+
+		waitForDBReady(ctx, t, db)
+
+		// Insert multiple rows into the EVENT_LOG table with varying fields
+		insertQuery := `
+			INSERT INTO EVENT_LOG (ENTITY_NAME, ENTITY_KEY, EVENT_PAYLOAD)
+			VALUES ($1, $2, $3)
+		`
+		for i := 1; i <= 10; i++ {
+			_, err := db.Exec(ctx, 0, insertQuery, fmt.Sprintf("EntityName%d", i), fmt.Sprintf("EntityKey%d", i), fmt.Sprintf(`{"key%d": "value%d"}`, i, i))
+			require.NoError(t, err, "failed to insert row")
+		}
+
+		// Begin a transaction
+		tx, err := db.TxBegin(ctx, 0)
+		require.NoError(t, err, "failed to begin transaction")
+
+		// Query the rows back from the EVENT_LOG table within the transaction
+		selectQuery := `
+			SELECT MESSAGE_ID, ENTITY_NAME, ENTITY_KEY, EVENT_PAYLOAD, MODIFY_TS
+			FROM EVENT_LOG
+			ORDER BY MESSAGE_ID
+		`
+		resultSet, err := tx.TxQueryAndClose(ctx, selectQuery)
+		require.NoError(t, err, "failed to query rows")
+
+		// Ensure we have 10 rows in the resultSet
+		require.Equal(t, 10, len(resultSet.GetRows()), "expected 10 rows in resultSet")
+		require.Equal(t, 10, len(resultSet.GetRowsScan()), "expected 10 rows in RowsScan")
 
 		// Verify each row content using resultSet.GetRow(i)
 		for i := 0; i < 10; i++ {

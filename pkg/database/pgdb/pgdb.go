@@ -23,7 +23,12 @@ var (
 	dbInstance database.InstanceManager
 )
 
+//###################################
+//#    PostgresDB - db manager.     #
+//###################################
+
 // PostgresDB - db manager.
+// It Implements database.InstanceManager
 type PostgresDB struct {
 	pool            *pgxpool.Pool
 	dbConf          database.ConnConfig
@@ -31,47 +36,24 @@ type PostgresDB struct {
 	lockMap         sync.Map // Store locks for each lockId
 }
 
+//###################################
+//#       Postgres TX Manager       #
+//###################################
+
 // PostgresTx - Postgres Transaction manager.
+// It Implements database.Transaction
 type PostgresTx struct {
 	tx   pgx.Tx
 	conn *pgxpool.Conn
 	txId int64
 }
 
-// PgxBatch - Postgres Transaction Batch manager.
-type PgxBatch struct {
-	batch *pgx.Batch
-}
-
-func NewEmptyBatch() database.Batch {
-	return &PgxBatch{
-		batch: &pgx.Batch{},
-	}
-}
-
-func (ptb *PgxBatch) GetBatch() any {
-	if ptb == nil {
-		ptb.batch = &pgx.Batch{}
-	}
-	return ptb.batch
-}
-
-func (ptb *PgxBatch) Len() int {
-	if ptb == nil {
-		ptb.batch = &pgx.Batch{}
-	}
-	return ptb.batch.Len()
-}
-
-func (ptb *PgxBatch) Queue(query string, arguments ...any) {
-	if ptb == nil {
-		ptb.batch = &pgx.Batch{}
-	}
-
-	ptb.batch.Queue(query, arguments)
-}
+//###################################
+//#       Postgres Row Scan         #
+//###################################
 
 // PgRowScan - Wrapper around a row scanner.
+// It implements database.RowScan
 type PgRowScan struct {
 	Values []any
 }
@@ -133,6 +115,65 @@ func (p *PgRowScan) Scan(dest ...any) error {
 		}
 	}
 	return nil
+}
+
+//###################################
+//#       Postgres Result Set       #
+//###################################
+
+// PgResultSet - Postgres specific resultset.
+// It implements database.ResultSet
+type PgResultSet struct {
+	pgxRows pgx.Rows
+	conn    *pgxpool.Conn
+	lockId  int64
+	database.DefaultResultSet
+}
+
+func (rs *PgResultSet) Close() {
+	if rs.pgxRows != nil {
+		rs.pgxRows.Close()
+	}
+	if rs.conn != nil && rs.lockId == 0 {
+		rs.conn.Release()
+	}
+}
+
+//###################################
+//#       Postgres BATCH            #
+//###################################
+
+// PgxBatch - Postgres Transaction Batch manager.
+type PgxBatch struct {
+	batch *pgx.Batch
+}
+
+func NewEmptyBatch() database.Batch {
+	return &PgxBatch{
+		batch: &pgx.Batch{},
+	}
+}
+
+func (ptb *PgxBatch) GetBatch() any {
+	if ptb == nil {
+		ptb.batch = &pgx.Batch{}
+	}
+	return ptb.batch
+}
+
+func (ptb *PgxBatch) Len() int {
+	if ptb == nil {
+		ptb.batch = &pgx.Batch{}
+	}
+	return ptb.batch.Len()
+}
+
+func (ptb *PgxBatch) Queue(query string, arguments ...any) {
+	if ptb == nil {
+		ptb.batch = &pgx.Batch{}
+	}
+
+	ptb.batch.Queue(query, arguments)
 }
 
 // SetupPostgresDB - setup Postgres DB connection.
@@ -258,11 +299,28 @@ func (db *PostgresDB) GetConnectionConfig() database.ConnConfig {
 	return db.dbConf
 }
 
-// Query - Execute a query and return a *ResultSet and Error, If lockId = 0 it will get a connection from pool,
-// otherwise will try to retrieve the connection associated with the given lockId
-// In case of we get the lockId != 0 remember that the connection won't be released, because it belongs to the of the Distributed Lock Scope
-// That needs to release it
-func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, args ...any) (*database.ResultSet, error) {
+// Query executes a query and returns a ResultSet and an error, requiring manual resource management.
+//
+// This method is designed for performance and flexibility. It retrieves the connection from the pool,
+// executes the query, and returns a ResultSet with the query results. The caller is responsible for
+// calling the Close() method on the ResultSet. This will release the connection
+//
+// Arguments:
+//   - ctx: The context for the query execution.
+//   - lockId: The ID used to retrieve a specific connection associated with a distributed lock. If 0, it gets a connection from the pool.
+//   - query: The SQL query to be executed.
+//   - args: The arguments for the SQL query.
+//
+// Returns:
+//   - ResultSet: The query results encapsulated in a ResultSet.
+//   - error: Any error encountered during query execution.
+//
+// Note:
+//   - This method is more performant because it does not copy the row data. However, it requires the caller
+//     to manage the lifecycle of the connection and rows, including calling Close() on the ResultSet.
+//   - In case of we get the lockId != 0 remember that the connection won't be released, because it belongs to the of the Distributed Lock Scope
+//     That needs to release it
+func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, args ...any) (database.ResultSet, error) {
 	var conn *pgxpool.Conn
 
 	var err error
@@ -270,17 +328,16 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 	if lockId == 0 {
 		conn, err = acquireConnectionFromPool(ctx, db)
 		if err != nil {
-			return &database.ResultSet{}, err
+			return &database.DefaultResultSet{}, err
 		}
 
-		defer conn.Release()
 	} else {
 		lock := db.loadOrStoreLockId(lockId)
 		lock.RLock()
 		conn = db.lockConnections[lockId]
 		lock.RUnlock()
 		if conn == nil {
-			return &database.ResultSet{}, errorx.NewDatabaseError("impossible to find connection for lock advisory")
+			return &database.DefaultResultSet{}, errorx.NewDatabaseError("impossible to find connection for lock advisory")
 		}
 	}
 
@@ -288,11 +345,10 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 	if err != nil {
 		logmgr.GetLogger().LogError(ctx, fmt.Sprintf("Error executing query '%s'", query), err)
 
-		return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
 	}
-	defer rows.Close()
 
-	var resultSet = database.ResultSet{}
+	var resultSet = PgResultSet{pgxRows: rows, conn: conn, lockId: lockId}
 
 	// Parse the rows and extract the data.
 	for rows.Next() {
@@ -300,7 +356,82 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 		if err != nil {
 			logmgr.GetLogger().LogError(ctx, "Error reading row Values", err)
 
-			return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
+			return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
+		}
+
+		resultSet.RowsScan = append(resultSet.RowsScan, &PgRowScan{Values: rowElements})
+		resultSet.Rows = append(resultSet.Rows, rowElements)
+	}
+
+	if err := rows.Err(); err != nil {
+		logmgr.GetLogger().LogError(ctx, "Error iterating rows", err)
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
+	}
+
+	return &resultSet, nil
+}
+
+// QueryAndClose executes a query, copies the results, and returns a ResultSet and error, with automatic resource management.
+//
+// This method is user-friendly because it handles the connection and row management internally. It retrieves
+// the connection from the pool, executes the query, and returns a ResultSet with the query results. It also
+// closes the pgx.Rows and the pgxpool.Conn internally after copying the row data, so the caller does not need
+// to worry about closing the connection or the rows.
+//
+// Arguments:
+//   - ctx: The context for the query execution.
+//   - lockId: The ID used to retrieve a specific connection associated with a distributed lock. If 0, it gets a connection from the pool.
+//   - query: The SQL query to be executed.
+//   - args: The arguments for the SQL query.
+//
+// Returns:
+//   - ResultSet: The query results encapsulated in a ResultSet.
+//   - error: Any error encountered during query execution.
+//
+// Note:
+//   - This method has a performance overhead due to the deep copy of row data. It is convenient but less performant.
+//   - In case of we get the lockId != 0 remember that the connection won't be released, because it belongs to the of the Distributed Lock Scope
+//     That needs to release it
+func (db *PostgresDB) QueryAndClose(ctx context.Context, lockId int64, query string, args ...any) (database.ResultSet, error) {
+	var conn *pgxpool.Conn
+
+	var err error
+
+	if lockId == 0 {
+		conn, err = acquireConnectionFromPool(ctx, db)
+		if err != nil {
+			return &database.DefaultResultSet{}, err
+		}
+
+		// Close the connection
+		defer conn.Release()
+	} else {
+		lock := db.loadOrStoreLockId(lockId)
+		lock.RLock()
+		conn = db.lockConnections[lockId]
+		lock.RUnlock()
+		if conn == nil {
+			return &database.DefaultResultSet{}, errorx.NewDatabaseError("impossible to find connection for lock advisory")
+		}
+	}
+
+	rows, err := conn.Query(ctx, query, args...)
+	if err != nil {
+		logmgr.GetLogger().LogError(ctx, fmt.Sprintf("Error executing query '%s'", query), err)
+
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
+	}
+	defer rows.Close()
+
+	var resultSet = PgResultSet{pgxRows: rows}
+
+	// Parse the rows and extract the data.
+	for rows.Next() {
+		rowElements, err := rows.Values()
+		if err != nil {
+			logmgr.GetLogger().LogError(ctx, "Error reading row Values", err)
+
+			return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
 		}
 
 		// Create a deep copy of rowElements for returning
@@ -312,16 +443,32 @@ func (db *PostgresDB) Query(ctx context.Context, lockId int64, query string, arg
 
 	if err := rows.Err(); err != nil {
 		logmgr.GetLogger().LogError(ctx, "Error iterating rows", err)
-		return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
 	}
 
 	return &resultSet, nil
 }
 
-// QueryAndProcess - Execute a query and apply the function processCallback to every row instead of returning the entire result set in memory.
-// If lockId = 0 it will get a connection from pool, otherwise will try to retrieve the connection associated with the given lockId
-// In case of we get the lockId != 0 remember that the connection won't be released, because it belongs to the of the Distributed Lock Scope
-// That needs to release it
+// QueryAndProcess executes a query and applies the processCallback function to each row instead of returning the entire result set in memory.
+// This method is designed for processing large result sets efficiently by handling each row sequentially, which helps in reducing memory usage.
+//
+// If lockId is 0, the method will acquire a connection from the pool. Otherwise, it will try to retrieve the connection associated with the given lockId.
+// In case of a non-zero lockId, the connection won't be released by this method because it belongs to the scope of the distributed lock, and needs to be released separately.
+//
+// Arguments:
+//   - ctx: The context for the query execution.
+//   - lockId: The ID used to retrieve a specific connection associated with a distributed lock. If 0, it gets a connection from the pool.
+//   - processCallback: A function that processes each row. This function takes a row (as database.Row) and a row scanner (as database.RowScan) as arguments and returns an error if processing fails.
+//   - query: The SQL query to be executed.
+//   - args: The arguments for the SQL query.
+//
+// Returns:
+//   - error: Any error encountered during query execution or row processing.
+//
+// Note:
+//   - The processCallback function is responsible for handling each row individually.
+//   - The method ensures efficient memory usage by not storing the entire result set in memory.
+//   - The pgx.Rows are closed automatically at the end of the method execution, ensuring proper resource management.
 func (db *PostgresDB) QueryAndProcess(ctx context.Context, lockId int64, processCallback func(row database.Row, rowScan database.RowScan) error, query string, args ...any) error {
 	var conn *pgxpool.Conn
 
@@ -361,10 +508,6 @@ func (db *PostgresDB) QueryAndProcess(ctx context.Context, lockId int64, process
 			return errorx.NewDatabaseErrorWrapper(err, "Error reading row Values")
 		}
 
-		// Create a deep copy of rowElements to send to the processCallback function
-		//rowElementsCopy := make([]any, len(rowElements))
-		//copy(rowElementsCopy, rowElements)
-
 		// Process the row.
 		// Here not needed to do a deep copy of rowElements because each row
 		// is processed individually and sequentially by the processCallback function
@@ -374,6 +517,7 @@ func (db *PostgresDB) QueryAndProcess(ctx context.Context, lockId int64, process
 
 			return errorx.NewDatabaseErrorWrapper(err, fmt.Sprintf("Error processing row value: %v", rowElements))
 		}
+		rows.FieldDescriptions()
 	}
 
 	if err := rows.Err(); err != nil {
@@ -643,25 +787,88 @@ func (t *PostgresTx) TxRollback(ctx context.Context, lockId int64) {
 	}
 }
 
-// TxQuery - Execute a query under a Transaction and return a *ResultSet and Error.
-func (t *PostgresTx) TxQuery(ctx context.Context, query string, args ...any) (*database.ResultSet, error) {
+// TxQuery executes a query within a transaction and returns a ResultSet and an error, requiring manual resource management.
+//
+// This method is designed for performance and flexibility within a transaction context. It retrieves the query
+// results and returns a ResultSet. The caller is responsible for closing the pgx.Rows to release the resources
+// by calling the Close() method on the ResultSet.
+//
+// Arguments:
+//   - ctx: The context for the query execution.
+//   - query: The SQL query to be executed.
+//   - args: The arguments for the SQL query.
+//
+// Returns:
+//   - ResultSet: The query results encapsulated in a ResultSet.
+//   - error: Any error encountered during query execution.
+//
+// Note:
+// This method is more performant because it does not copy the row data. However, it requires the caller
+// to manage the lifecycle of the connection and rows, including calling Close() on the ResultSet.
+func (t *PostgresTx) TxQuery(ctx context.Context, query string, args ...any) (database.ResultSet, error) {
 	rows, err := t.tx.Query(ctx, query, args...)
 	if err != nil {
-		return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
 	}
-	defer rows.Close()
 
-	var resultSet = database.ResultSet{}
+	var resultSet = PgResultSet{pgxRows: rows}
 
 	// Parse the rows and extract the data.
 	for rows.Next() {
 		rowElements, err := rows.Values()
 		if err != nil {
 			logmgr.GetLogger().LogError(ctx, "Error reading row value", err)
-			return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row value")
+			return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row value")
 		}
 
-		// Create a new PgRowScan for the current row
+		resultSet.RowsScan = append(resultSet.RowsScan, &PgRowScan{Values: rowElements})
+		resultSet.Rows = append(resultSet.Rows, rowElements)
+	}
+
+	if err := rows.Err(); err != nil {
+		logmgr.GetLogger().LogError(ctx, "Error iterating rows", err)
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
+	}
+
+	return &resultSet, nil
+}
+
+// TxQueryAndClose executes a query within a transaction, copies the results, and returns a ResultSet and an error, with automatic resource management.
+//
+// This method is user-friendly within a transaction context because it handles the connection and row management
+// internally. It retrieves the query results and returns a ResultSet with the query results. It also closes the
+// pgx.Rows internally after copying the row data, so the caller does not need to worry about closing the connection
+// or the rows.
+//
+// Arguments:
+//   - ctx: The context for the query execution.
+//   - query: The SQL query to be executed.
+//   - args: The arguments for the SQL query.
+//
+// Returns:
+//   - ResultSet: The query results encapsulated in a ResultSet.
+//   - error: Any error encountered during query execution.
+//
+// Note:
+// This method has a performance overhead due to the deep copy of row data. It is convenient but less performant.
+func (t *PostgresTx) TxQueryAndClose(ctx context.Context, query string, args ...any) (database.ResultSet, error) {
+	rows, err := t.tx.Query(ctx, query, args...)
+	if err != nil {
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error executing query '%s'", query)
+	}
+	defer rows.Close()
+
+	var resultSet = PgResultSet{}
+
+	// Parse the rows and extract the data.
+	for rows.Next() {
+		rowElements, err := rows.Values()
+		if err != nil {
+			logmgr.GetLogger().LogError(ctx, "Error reading row value", err)
+			return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error reading row value")
+		}
+
+		// Create a deep copy of rowElements for returning
 		rowElementsCopy := make([]any, len(rowElements))
 		copy(rowElementsCopy, rowElements)
 		resultSet.RowsScan = append(resultSet.RowsScan, &PgRowScan{Values: rowElementsCopy})
@@ -670,7 +877,7 @@ func (t *PostgresTx) TxQuery(ctx context.Context, query string, args ...any) (*d
 
 	if err := rows.Err(); err != nil {
 		logmgr.GetLogger().LogError(ctx, "Error iterating rows", err)
-		return &database.ResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
+		return &database.DefaultResultSet{}, errorx.NewDatabaseErrorWrapper(err, "Error iterating rows")
 	}
 
 	return &resultSet, nil
