@@ -3,10 +3,17 @@ package testcontainer_pg
 import (
 	"context"
 	"fmt"
+
 	"github.com/docker/go-connections/nat"
-	_ "github.com/jackc/pgx/v4/stdlib"
+
 	//_ "github.com/golang-migrate/migrate/v4/database/pgx"
 	//_ "github.com/golang-migrate/migrate/v4/source/file"
+	"log"
+	"path/filepath"
+	"testing"
+	"time"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/marcodd23/go-micro-core/pkg/database"
 	"github.com/marcodd23/go-micro-core/pkg/database/pgdb"
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
@@ -15,10 +22,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"log"
-	"path/filepath"
-	"testing"
-	"time"
 )
 
 const (

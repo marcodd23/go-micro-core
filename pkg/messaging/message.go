@@ -4,5 +4,5 @@ package messaging
 type Message interface {
 	GetMsgRefId() string
 	GetPayload() []byte
-	GetPayloadAttributes() map[string]string
+	GetMessageAttributes() map[string]string
 }

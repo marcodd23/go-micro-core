@@ -1,10 +1,11 @@
 package pgdb_test
 
 import (
+	"testing"
+
 	"github.com/goccy/go-json"
 	"github.com/marcodd23/go-micro-core/pkg/database/pgdb"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // TestPgRowScan_SimpleTypes verifies that PgRowScan can correctly scan and convert simple data types

@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/marcodd23/go-micro-core/pkg/configmgr"
 	"github.com/marcodd23/go-micro-core/pkg/database"
@@ -9,9 +13,6 @@ import (
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 	"github.com/marcodd23/go-micro-core/pkg/servermgr/fibersrv"
 	"github.com/marcodd23/go-micro-core/pkg/shutdown"
-	"log"
-	"sync"
-	"time"
 )
 
 // ShutdownTimeoutMilli - timeout for cleaning up resources before shutting down the server.
