@@ -2,13 +2,14 @@ package pubsub_test
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
 	"github.com/marcodd23/go-micro-core/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
@@ -106,7 +107,7 @@ func TestPubSubBufferedPublisher_Json(t *testing.T) {
 	connOptions := container.CreateConnectionOptions(t)
 
 	// Set up the buffered publisher.
-	bp, err := pubsub.NewPubSubBufferedPublisherFactory(ctx, "test-project", 2, nil, connOptions...)
+	bp, err := pubsub.NewPubSubBufferedPublisherFactory(ctx, "test-project", 2, 10, connOptions...)
 	require.NoError(t, err)
 	// defer bp.Close()
 

@@ -1,8 +1,9 @@
 package publisher
 
 import (
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"log"
+
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
 
 	"context"
 	"sync"
@@ -14,8 +15,8 @@ type BufferedPublisher interface {
 	Close(ctx context.Context) error
 }
 
-// BfPublisher - BufferedPublisher struct implementation.
-type BfPublisher struct {
+// bufferedPublisher - BufferedPublisher struct implementation.
+type bufferedPublisher struct {
 	sync.Mutex
 	client        Client
 	publishConfig TopicPublishConfig
@@ -26,7 +27,7 @@ type BfPublisher struct {
 func NewBufferedPublisher(
 	client Client,
 	publishConfig TopicPublishConfig) (BufferedPublisher, error) {
-	bp := &BfPublisher{
+	bp := &bufferedPublisher{
 		client:        client,
 		publishConfig: publishConfig,
 		Done:          make(chan struct{}),
@@ -52,7 +53,7 @@ type BufferedPublishResult struct {
 }
 
 // Publish - Publish a Batch of Messages in Json
-func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatch []messaging.Message) (*BatchResult, error) {
+func (p *bufferedPublisher) Publish(ctx context.Context, topicName string, payloadBatch []messaging.Message) (*BatchResult, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -83,7 +84,7 @@ func (p *BfPublisher) Publish(ctx context.Context, topicName string, payloadBatc
 	}
 }
 
-func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*messaging.Message, batchResult *BatchResult) {
+func (p *bufferedPublisher) publishBatch(ctx context.Context, topicName string, messages map[string]*messaging.Message, batchResult *BatchResult) {
 	resultMap := make(map[string]PublishResult)
 
 	topic := p.client.Topic(topicName)
@@ -112,7 +113,7 @@ func (p *BfPublisher) publishBatch(ctx context.Context, topicName string, messag
 }
 
 // Close - close the BufferedPublisher and all the related goroutines.
-func (p *BfPublisher) Close(ctx context.Context) error {
+func (p *bufferedPublisher) Close(ctx context.Context) error {
 	// Non-blocking check if the Done channel is closed
 	select {
 	case <-p.Done:

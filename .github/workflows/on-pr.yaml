@@ -9,6 +9,7 @@ on:
       - reopened
       - synchronize
       - edited
+      - reopened
 
 concurrency:
   group: alpha-versioning
