@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 )
 
@@ -21,7 +22,7 @@ func (s NamedStage) Process(ctx context.Context, msg Message) (Message, error) {
 	workerID, _ := ctx.Value(workerIDKey).(string)
 	pipelineName, _ := ctx.Value(pipelineNameKey).(string)
 
-	logmgr.GetLogger().LogInfo(ctx, buildPipelineStartAndStageLog(false, workerID, pipelineName, s.Name, msg.GetMsgRefId()))
+	logmgr.GetLogger().LogInfo(ctx, BuildPipelineLog(Processing, workerID, pipelineName, s.Name, msg.GetMsgRefId(), ""))
 
 	return s.Stage.Process(ctx, msg)
 }

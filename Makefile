@@ -1,29 +1,40 @@
 # General variables
-export IGNORE_LINTING ?= true
+IGNORE_LINTING ?= true
+OS := $(shell uname | tr '[:upper:]' '[:lower:]')
+ARCHITECTURE := $(shell uname -m)
+ARCHITECTURE_SUBSTITUTED := $(shell uname -m | sed "s/x86_64/amd64/g")
 
 #Define PROPERTY_FILE 
 export CURRENT_DIR := $(shell pwd)
 
-# Dependency versions
-export GOMOCK_VERSION ?= v1.5.0
-export SWAGGER_VERSION ?= v0.27.0
-export GOWRAP_VERSION ?= v1.2.1
-export GOLANGCI_LINT_VERSION := v1.54.2
-export GOLANGCI_LINT := bin/golangci-lint_$(GOLANGCI_LINT_VERSION)/golangci-lint
-export GOLINTCI_URL := https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+# ===============================================
+# Define variables for Git and Versioning
+# ===============================================
+BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
+CREATED := $(shell date +%Y-%m-%dT%T%z)
+GIT_REPO := $(shell git config --get remote.origin.url)
+GIT_TOKEN ?= $(shell cat git-token.txt)
+REPO_NAME := $(shell basename ${GIT_REPO} .git)
+REVISION_ID := $(shell git rev-parse HEAD)
+SHORT_SHA := $(shell git rev-parse --short HEAD)
+TAG_NAME ?= $(shell git describe --exact-match --tags 2> /dev/null)
+VERSION ?= $(if ${TAG_NAME},${TAG_NAME},latest)
+VERSION_PATH := github.com/ingka-group-digital/${REPO_NAME}/internal/version
 
 
-# Versioning
-export BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
-export CREATED := $(shell date +%Y-%m-%dT%T%z)
-export GIT_REPO := $(shell git config --get remote.origin.url)
-export GIT_TOKEN ?= $(shell cat git-token.txt)
-export REPO_NAME := $(shell basename ${GIT_REPO} .git)
-export REVISION_ID := $(shell git rev-parse HEAD)
-export SHORT_SHA := $(shell git rev-parse --short HEAD)
-export TAG_NAME ?= $(shell git describe --exact-match --tags 2> /dev/null)
-export VERSION ?= $(if ${TAG_NAME},${TAG_NAME},latest)
-export VERSION_PATH := github.com/ingka-group-digital/${REPO_NAME}/internal/version
+
+# ===============================================================
+# Define Variables for Makefile tools versions and dependencies
+# ===============================================================
+GOIMPORTS := $(shell which goimports)
+
+GOLANGCI_LINT_VERSION := 1.55.2
+GOLANGCI_LINT := bin/golangci-lint_v$(GOLANGCI_LINT_VERSION)/golangci-lint
+GOLINTCI_LINT_URL := https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+
+GOTESTSUM_VERSION := 1.11.0
+GOTESTSUM := bin/gotestsum_v$(GOTESTSUM_VERSION)/gotestsum
+GOTESTSUM_URL := https://github.com/gotestyourself/gotestsum/releases/download/v$(GOTESTSUM_VERSION)/gotestsum_$(GOTESTSUM_VERSION)_$(OS)_$(ARCHITECTURE_SUBSTITUTED).tar.gz
 
 all: help
 
@@ -32,13 +43,27 @@ all: help
 clean:
 	@echo "🚀 Cleaning up old artifacts MAIN"
 
-## test: Runs all tests
+## test: runs go tests
 .PHONY: test
-test:
-	@go mod download
-	@go mod tidy
-	@echo "🚀 Running tests"
-	@go test -cover -count=1 ./pkg/...
+test: ${GOTESTSUM}
+	@echo "🚀 running tests"
+	@bash -c 'set -o pipefail; CGO_ENABLED=1 ${GOTESTSUM} --format testname --no-color=false -- -race ./pkg/... | grep -v "EMPTY"; exit $$?'
+	@#go test -cover -count=1 ./internal/...
+
+## test-coverage: creates a test coverage report in HTML format
+.PHONY: test-coverage
+test-coverage:
+	@echo "🚀 creating coverage report in HTML format"
+	@go test -coverprofile=coverage.out ./pkg/...
+	@go tool cover -html=coverage.out
+
+# Format target
+.PHONY: go-format
+go-format: ${GOIMPORTS}
+	@echo  "🚀 running go fmt"
+	@go fmt ./...
+	@echo "🚀 Formatting code with goimports"
+	@${GOIMPORTS} -w .
 
 ## build: Build the application artifacts. Linting can be skipped by setting env variable IGNORE_LINTING.
 .PHONY: build
@@ -50,19 +75,6 @@ endif
 	@go mod tidy
 	@echo "🚀 Building artifacts"
 	@go build ./pkg/...
-
-
-## lint: Lint the source code
-.PHONY: lint
-lint: ${GOLANGCI_LINT}
-	@echo "🚀 Linting code"
-	@gofmt -w -s .
-	@$(GOLANGCI_LINT) run
-
-
-## lint-info: Returns information about the current linter being used
-lint-info:
-	@echo ${GOLANGCI_LINT}
 
 
 ## install-hooks: Install Git hooks
@@ -78,12 +90,9 @@ uninstall-hooks:
 	@rm -f .git/hooks/pre-push
 
 
-${GOLANGCI_LINT}:
-	@echo "📦 Installing golangci-lint ${GOLANGCI_LINT_VERSION}"
-	@rm -rf ./bin/golangci-lint_*
-	@mkdir -p $(dir ${GOLANGCI_LINT})
-	@curl -sSfL ${GOLINTCI_URL} | sh -s -- -b ./$(patsubst %/,%,$(dir ${GOLANGCI_LINT})) ${GOLANGCI_LINT_VERSION} > /dev/null 2>&1
-
+## makefile-check: downloads all binaries if not already present
+.PHONY: makefile-check
+makefile-check: ${GOTESTSUM} ${GOIMPORTS}
 
 help: Makefile
 	@echo
@@ -91,3 +100,22 @@ help: Makefile
 	@echo
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
+
+
+
+# ################################ #
+# targets to download the binaries #
+# ################################ #
+
+# Ensure gotestsum is installed
+${GOTESTSUM}:
+	@echo "📦 installing gotestsum v${GOTESTSUM_VERSION}"
+	@mkdir -p $(dir ${GOTESTSUM})
+	@curl -sSL ${GOTESTSUM_URL} > bin/gotestsum.tar.gz
+	@tar -xzf bin/gotestsum.tar.gz -C $(patsubst %/,%,$(dir ${GOTESTSUM}))
+	@rm -f bin/gotestsum.tar.gz
+
+# Ensure goimports is installed
+${GOIMPORTS}:
+	@echo "Installing goimports..."
+	@go install golang.org/x/tools/cmd/goimports@latest

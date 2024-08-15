@@ -1,66 +1,93 @@
 package pipeline
 
 import (
-	"context"
 	"fmt"
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 )
 
-// A Message is a wrapper for a payload (consisting of a body and attributes) and internal
-// message attributes. An instance of PipelineMessage can be routed through a pipeline.
-type Message struct {
-	messageId  string
-	payload    payload
-	attributes map[string]interface{}
+// A Message is a wrapper for a payload (consisting of a body and attributes).
+// An instance of Message can be routed through a pipeline.
+type Message interface {
+	GetMsgRefId() string
+	GetPayload() []byte
+	GetMessageAttributes() map[string]string
 }
 
-// payload is used in a PipelineMessage to hold the body and public payload attributes of a message.
-type payload struct {
-	body       []byte
+type PipeMessage struct {
+	messageId  string
+	payload    []byte
 	attributes map[string]string
 }
 
-// NewPipelineMessage creates a new PipelineMessage.
-func NewPipelineMessage(messageId string, payloadBody []byte, payloadAttrs map[string]string, msgAttrs map[string]interface{}) Message {
-	return Message{
-		messageId: messageId,
-		payload: payload{
-			body:       payloadBody,
-			attributes: payloadAttrs,
-		},
+// NewPipeMessage creates a new PipelineMessage.
+func NewPipeMessage(messageId string, payloadBody []byte, msgAttrs map[string]string) PipeMessage {
+	return PipeMessage{
+		messageId:  messageId,
+		payload:    payloadBody,
+		attributes: msgAttrs}
+}
+
+func (m PipeMessage) GetMsgRefId() string {
+	return m.messageId
+}
+
+// GetPayload returns the message payload.
+func (m PipeMessage) GetPayload() []byte {
+	return m.payload
+}
+
+// GetMessageAttributes returns a copy of the payload attributes.
+func (m PipeMessage) GetMessageAttributes() map[string]string {
+	return m.attributes
+}
+
+// AddMessageAttribute adds an internal message attribute to a copy of the original message
+// to keep the original instance unchanged.
+// It will throw an error if the attribute key already exists.
+func (m PipeMessage) AddMessageAttribute(key string, value string) (PipeMessage, error) {
+	// check if attribute already exists
+	_, found := m.attributes[key]
+	if found {
+		return m, fmt.Errorf("attribute key (%v) already exists", key)
+	}
+
+	// set attribute and return new message
+	m.attributes[key] = value
+
+	return m, nil
+}
+
+// A ImmutablePipeMessage is a wrapper for a payload (consisting of a body and attributes) and internal
+// message attributes. An instance of PipelineMessage can be routed through a pipeline.
+type ImmutablePipeMessage PipeMessage
+
+// NewImmutablePipeMessage creates a new ImmutablePipeMessage.
+func NewImmutablePipeMessage(messageId string, payloadBody []byte, msgAttrs map[string]string) ImmutablePipeMessage {
+	return ImmutablePipeMessage{
+		messageId:  messageId,
+		payload:    payloadBody,
 		attributes: msgAttrs}
 }
 
 // Copy copies a message and its contents.
-func (m Message) Copy() Message {
-	return NewPipelineMessage(m.GetMsgRefId(), m.GetPayload(), m.GetPayloadAttributes(), m.GetMessageAttributes())
+func (m ImmutablePipeMessage) Copy() ImmutablePipeMessage {
+	return NewImmutablePipeMessage(m.GetMsgRefId(), m.GetPayload(), m.GetMessageAttributes())
 }
 
-func (m Message) GetMsgRefId() string {
+func (m ImmutablePipeMessage) GetMsgRefId() string {
 	return m.messageId
 }
 
 // GetPayload returns a copy of the message payload.
-func (m Message) GetPayload() []byte {
-	body := make([]byte, len(m.payload.body))
-	copy(body, m.payload.body)
+func (m ImmutablePipeMessage) GetPayload() []byte {
+	payloadCopy := make([]byte, len(m.payload))
+	copy(payloadCopy, m.payload)
 
-	return body
+	return payloadCopy
 }
 
-// GetPayloadAttributes returns a copy of the payload attributes.
-func (m Message) GetPayloadAttributes() map[string]string {
-	copiedMap := make(map[string]string, len(m.payload.attributes))
-	for key, value := range m.payload.attributes {
-		copiedMap[key] = value
-	}
-
-	return copiedMap
-}
-
-// GetMessageAttributes returns a copy of the internal message attributes.
-func (m Message) GetMessageAttributes() map[string]interface{} {
-	copiedMap := make(map[string]interface{}, len(m.attributes))
+// GetMessageAttributes returns a copy of the payload attributes.
+func (m ImmutablePipeMessage) GetMessageAttributes() map[string]string {
+	copiedMap := make(map[string]string, len(m.attributes))
 	for key, value := range m.attributes {
 		copiedMap[key] = value
 	}
@@ -68,10 +95,10 @@ func (m Message) GetMessageAttributes() map[string]interface{} {
 	return copiedMap
 }
 
-// AddAttribute adds an internal message attribute to a copy of the original message
+// AddMessageAttribute adds an internal message attribute to a copy of the original message
 // to keep the original instance unchanged.
 // It will throw an error if the attribute key already exists.
-func (m Message) AddAttribute(key string, value interface{}) (Message, error) {
+func (m ImmutablePipeMessage) AddMessageAttribute(key string, value string) (ImmutablePipeMessage, error) {
 	// check if attribute already exists
 	_, found := m.attributes[key]
 	if found {
@@ -81,35 +108,6 @@ func (m Message) AddAttribute(key string, value interface{}) (Message, error) {
 	// set attribute and return new message
 	msg := m.Copy()
 	msg.attributes[key] = value
-
-	return msg, nil
-}
-
-// AddPayloadAttribute adds a message payload attribute to a copy of the original message
-// to keep the original instance unchanged.
-// It will throw an error if the attribute key already exists.
-func (m Message) AddPayloadAttribute(key, value string) (Message, error) {
-	// check if attribute already exists
-	_, found := m.payload.attributes[key]
-	if found {
-		return m, fmt.Errorf("attribute key (%v) already exists", key)
-	}
-
-	// set attribute and return new message
-	msg := m.Copy()
-	msg.payload.attributes[key] = value
-
-	return msg, nil
-}
-
-// UpsertPayloadAttribute adds or updates a message payload attribute in a copy of the original message
-// to keep the original instance unchanged.
-func (m Message) UpsertPayloadAttribute(key, value string) (Message, error) {
-	logmgr.GetLogger().LogDebug(context.Background(), fmt.Sprintf("Upsert GetPayload Attribute key %v", key))
-
-	// set attribute and return new message
-	msg := m.Copy()
-	msg.payload.attributes[key] = value
 
 	return msg, nil
 }

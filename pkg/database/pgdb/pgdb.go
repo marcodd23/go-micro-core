@@ -3,13 +3,14 @@ package pgdb
 import (
 	"context"
 	"fmt"
-	"github.com/goccy/go-json"
-	"github.com/jackc/pgx/v5"
-	"github.com/marcodd23/go-micro-core/pkg/database"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/jackc/pgx/v5"
+	"github.com/marcodd23/go-micro-core/pkg/database"
 
 	"github.com/marcodd23/go-micro-core/pkg/errorx"
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"

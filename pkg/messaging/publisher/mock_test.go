@@ -3,6 +3,7 @@ package publisher_test
 
 import (
 	"context"
+
 	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 
