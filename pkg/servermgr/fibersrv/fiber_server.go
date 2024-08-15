@@ -3,12 +3,13 @@ package fibersrv
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/marcodd23/go-micro-core/pkg/configmgr"
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 	"github.com/marcodd23/go-micro-core/pkg/servermgr"
-	"sync"
 )
 
 var (

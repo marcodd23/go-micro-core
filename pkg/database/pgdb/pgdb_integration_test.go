@@ -3,13 +3,14 @@ package pgdb_test
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/goccy/go-json"
 	"github.com/marcodd23/go-micro-core/pkg/database"
 	testcontainer "github.com/marcodd23/go-micro-core/test/testcontainer/testcontainer_pg"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"testing"
-	"time"
 )
 
 /*

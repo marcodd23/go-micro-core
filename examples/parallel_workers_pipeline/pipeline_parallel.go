@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 	"github.com/marcodd23/go-micro-core/pkg/patterns/pipeline"
-	"sync"
 )
 
 func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitGroup) (inputChan chan pipeline.Message, outputChan chan pipeline.Message) {
@@ -15,8 +16,8 @@ func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitG
 
 	// Create the stages for the pipeline
 	stages := []pipeline.Stage{
-		pipeline.NamedStage{Name: "#FIRST#", Stage: FirstStage{Name: "#FIRST#"}},
-		pipeline.NamedStage{Name: "#SECOND#", Stage: SecondStage{Name: "#SECOND#"}},
+		pipeline.NamedStage{Name: "FIRST", Stage: FirstStage{}},
+		pipeline.NamedStage{Name: "SECOND", Stage: SecondStage{}},
 	}
 
 	// Initialize the Orchestrator with a single pipeline configuration
@@ -54,7 +55,7 @@ func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.M
 	// Simulate incoming messages
 	go func() {
 		for i := 0; i < 10; i++ {
-			msg := pipeline.NewPipelineMessage(fmt.Sprintf("messageId%d", i), []byte("message body"), map[string]string{"key": "value"}, map[string]interface{}{"attrKey": "attrValue"})
+			msg := pipeline.NewImmutablePipeMessage(fmt.Sprintf("messageId%d", i), []byte("message body"), map[string]string{"attrKey": "attrValue"})
 			inputChan <- msg
 			logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Sent message %s to input channel", msg.GetMsgRefId()))
 		}
@@ -62,9 +63,8 @@ func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.M
 	}()
 }
 
-// FirstStage and Message implementations (replace with actual implementations)
+// Stage and ImmutablePipeMessage implementations (replace with actual implementations)
 type FirstStage struct {
-	Name string
 }
 
 func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
@@ -72,14 +72,13 @@ func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline
 	//workerID, _ := ctx.Value(workerIDKey).(int)
 	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
-	// Implement the processing logic here.
-	// For example, modify the message payload or attributes.
+	// Implement the processing logic here
+	// For example, modify the message payload or attributes
 
 	return msg, nil
 }
 
 type SecondStage struct {
-	Name string
 }
 
 func (s SecondStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {

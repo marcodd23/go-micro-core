@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
+	"sync"
+
 	"github.com/marcodd23/go-micro-core/pkg/configmgr"
 	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 	"github.com/marcodd23/go-micro-core/pkg/shutdown"
-	"log"
-	"sync"
 )
 
 // ShutdownTimeoutMilli - timeout for cleaning up resources before shutting down the server.

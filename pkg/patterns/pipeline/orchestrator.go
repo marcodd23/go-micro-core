@@ -3,9 +3,10 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 	"strconv"
 	"sync"
+
+	"github.com/marcodd23/go-micro-core/pkg/logmgr"
 )
 
 type contextKey string
@@ -79,7 +80,14 @@ func (o *Orchestrator) processMessages(ctx context.Context, pipelineName string,
 		select {
 		case <-ctx.Done():
 			// Context was cancelled, stop processing
-			logmgr.GetLogger().LogInfo(context.Background(), fmt.Sprintf("Pipeline %s Worker %d stopping due to context cancellation", pipelineName, workerID))
+			logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+				Stopped,
+				strconv.Itoa(workerID),
+				pipelineName,
+				"",
+				"",
+				"context cancellation",
+			))
 			return
 		case msg, ok := <-pipelineConfig.InputChan:
 			if !ok {
@@ -94,10 +102,25 @@ func (o *Orchestrator) processMessages(ctx context.Context, pipelineName string,
 			// Process the message
 			processedMsg, err := pipelineConfig.Pipeline.Process(msgCtx, msg)
 			if err != nil {
-				logmgr.GetLogger().LogError(msgCtx, fmt.Sprintf("Pipeline: %s, Worker: %d, error processing message %s: %v", pipelineName, workerID, msg.GetMsgRefId(), err))
+				logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+					Error,
+					strconv.Itoa(workerID),
+					pipelineName,
+					"",
+					msg.GetMsgRefId(),
+					fmt.Sprintf("error processing message: %v", err),
+				))
 				continue
 			}
 			logmgr.GetLogger().LogInfo(msgCtx, fmt.Sprintf("Pipeline: %s, Worker: %d, completed processing message %s successfully", pipelineName, workerID, processedMsg.GetMsgRefId()))
+			logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+				Completed,
+				strconv.Itoa(workerID),
+				pipelineName,
+				"",
+				processedMsg.GetMsgRefId(),
+				"completed processing message",
+			))
 
 			// Send to the output channel if provided
 			if pipelineConfig.OutputChan != nil {

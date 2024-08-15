@@ -6,7 +6,7 @@ type Config interface {
 	GetVersion() string
 	GetEnvironment() string
 	GetServerConfig() *ServerConfig
-	GetGcpConfig() *GcpConfig
+	GetGcpConfig() GcpConfig
 	GetLoggingConfig() *LoggingConfig
 	IsLocalEnvironment() bool
 }
@@ -23,6 +23,11 @@ gcp:
   projectNumber: 620222630834
   project: test-project
   location: europe-west4
+image:
+  repository: europe-west4-docker.pkg.dev/ingka-opoa-nexus-dev/nexus-docker-repo
+  name: test-app
+  pullPolicy: Always
+  tag: latest
 server:
   port: "8080"
   concurrency: 10
@@ -34,7 +39,8 @@ type BaseConfig struct {
 	Version     string         `mapstructure:"version"`
 	Logging     *LoggingConfig `mapstructure:"logging"`
 	Server      *ServerConfig  `mapstructure:"server"`
-	Gcp         *GcpConfig     `mapstructure:"gcp"`
+	Gcp         GcpConfig      `mapstructure:"gcp"`
+	Image       *Image         `mapstructure:"image"`
 }
 
 type ServerConfig struct {
@@ -51,6 +57,14 @@ type GcpConfig struct {
 	ProjectId     string `mapstructure:"project"`
 	ProjectNumber string `mapstructure:"projectNumber"`
 	Location      string `mapstructure:"location"`
+}
+
+// Image - Image properties
+type Image struct {
+	Repository string `mapstructure:"repository"`
+	Name       string `mapstructure:"name"`
+	PullPolicy string `mapstructure:"pullPolicy"`
+	Tag        string `mapstructure:"tag"`
 }
 
 func (cfg BaseConfig) GetServiceName() string {
@@ -73,7 +87,7 @@ func (cfg BaseConfig) GetServerConfig() *ServerConfig {
 	return cfg.Server
 }
 
-func (cfg BaseConfig) GetGcpConfig() *GcpConfig {
+func (cfg BaseConfig) GetGcpConfig() GcpConfig {
 	return cfg.Gcp
 }
 

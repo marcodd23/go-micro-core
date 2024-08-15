@@ -2,11 +2,12 @@ package logmgr
 
 import (
 	"context"
-	"github.com/marcodd23/go-micro-core/pkg/configmgr"
-	"github.com/rs/zerolog"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/marcodd23/go-micro-core/pkg/configmgr"
+	"github.com/rs/zerolog"
 )
 
 type ZeroLogWrapper struct {
@@ -64,6 +65,22 @@ func SetupLogger(config configmgr.Config) Logger {
 
 func (lm *ZeroLogWrapper) logWithContext(ctx context.Context, level zerolog.Level, errs []error, msg string) {
 	logEvent := lm.zeroLog.WithLevel(level)
+
+	switch level {
+	case zerolog.DebugLevel:
+		logEvent = logEvent.Str("severity", "DEBUG")
+	case zerolog.InfoLevel:
+		logEvent = logEvent.Str("severity", "INFO")
+	case zerolog.WarnLevel:
+		logEvent = logEvent.Str("severity", "WARNING")
+	case zerolog.ErrorLevel:
+		logEvent = logEvent.Str("severity", "ERROR")
+	case zerolog.FatalLevel:
+		logEvent = logEvent.Str("severity", "CRITICAL")
+	case zerolog.PanicLevel:
+		logEvent = logEvent.Str("severity", "CRITICAL")
+	}
+
 	for _, err := range errs {
 		logEvent = logEvent.Err(err)
 	}

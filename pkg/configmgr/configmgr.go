@@ -2,10 +2,11 @@ package configmgr
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const defaultConfigBaseName = "property"
