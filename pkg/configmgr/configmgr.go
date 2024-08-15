@@ -39,7 +39,6 @@ func ReadConfiguration(configFilePath string, config Config) error {
 	// Attempt to read the configuration file
 	if err := viper.ReadInConfig(); err == nil {
 		log.Printf("Reading configuration from config file: %s\nSet environment variables will OVERRIDE these values, as the environment takes precedent.", configFilePath)
-		log.Printf("Please do not mix a configuration file and environment variables! Your variables may not get read correctly.")
 	} else {
 		log.Println("No configuration file found, reading configuration from environment variables.")
 	}
