@@ -54,7 +54,7 @@ func TestDatabase(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	t.Run("TestQueryAndStream", func(t *testing.T) {
+	t.Run("TestQuery", func(t *testing.T) {
 		defer cleanup()
 
 		waitForDBReady(ctx, t, db)
@@ -119,7 +119,7 @@ func TestDatabase(t *testing.T) {
 		}
 	})
 
-	t.Run("TestQueryAndCopy", func(t *testing.T) {
+	t.Run("TestQueryAndClose", func(t *testing.T) {
 		defer cleanup()
 
 		waitForDBReady(ctx, t, db)
@@ -251,7 +251,7 @@ func TestDatabase(t *testing.T) {
 		require.NoError(t, err, "failed to commit transaction")
 	})
 
-	t.Run("TestTxQueryWithClone", func(t *testing.T) {
+	t.Run("TestTxQueryAndClose", func(t *testing.T) {
 		defer cleanup()
 
 		waitForDBReady(ctx, t, db)
