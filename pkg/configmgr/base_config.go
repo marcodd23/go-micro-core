@@ -6,7 +6,7 @@ type Config interface {
 	GetVersion() string
 	GetEnvironment() string
 	GetServerConfig() *ServerConfig
-	GetGcpConfig() *GcpConfig
+	GetGcpConfig() GcpConfig
 	GetLoggingConfig() *LoggingConfig
 	IsLocalEnvironment() bool
 }
@@ -39,7 +39,7 @@ type BaseConfig struct {
 	Version     string         `mapstructure:"version"`
 	Logging     *LoggingConfig `mapstructure:"logging"`
 	Server      *ServerConfig  `mapstructure:"server"`
-	Gcp         *GcpConfig     `mapstructure:"gcp"`
+	Gcp         GcpConfig      `mapstructure:"gcp"`
 	Image       *Image         `mapstructure:"image"`
 }
 
@@ -87,7 +87,7 @@ func (cfg BaseConfig) GetServerConfig() *ServerConfig {
 	return cfg.Server
 }
 
-func (cfg BaseConfig) GetGcpConfig() *GcpConfig {
+func (cfg BaseConfig) GetGcpConfig() GcpConfig {
 	return cfg.Gcp
 }
 
