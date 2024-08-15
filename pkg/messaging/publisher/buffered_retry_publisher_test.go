@@ -1,17 +1,18 @@
 package publisher_test
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
 	"errors"
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
-	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
-	gcpPubSub "github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"cloud.google.com/go/pubsub"
+	"github.com/marcodd23/go-micro-core/pkg/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
+	gcpPubSub "github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {

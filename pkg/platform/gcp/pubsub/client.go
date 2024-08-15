@@ -2,8 +2,9 @@
 package pubsub
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
+
+	"cloud.google.com/go/pubsub"
 	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 )
@@ -37,7 +38,7 @@ type pubSubTopic struct {
 
 func (w *pubSubTopic) Publish(ctx context.Context, msg messaging.Message) publisher.PublishResult {
 	pubSubMessage := &pubsub.Message{
-		Attributes: msg.GetPayloadAttributes(),
+		Attributes: msg.GetMessageAttributes(),
 		Data:       msg.GetPayload(),
 	}
 	return pubSubPublishResult{publishResult: w.topic.Publish(ctx, pubSubMessage)}

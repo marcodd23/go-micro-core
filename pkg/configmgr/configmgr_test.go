@@ -19,6 +19,11 @@ gcp:
   projectNumber: 620222630834
   project: test-project
   location: europe-west4
+image:
+  repository: europe-west4-docker.pkg.dev/ingka-opoa-nexus-dev/nexus-docker-repo
+  name: test-app
+  pullPolicy: Always
+  tag: latest
 server:
   port: "8080"
   concurrency: 10

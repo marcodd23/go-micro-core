@@ -163,36 +163,36 @@ type DefaultResultSet struct {
 }
 
 // GetRow - get row by index.
-func (r *DefaultResultSet) GetRow(rowIdx int) (Row, error) {
-	if rowIdx < 0 || rowIdx >= len(r.Rows) {
+func (rs *DefaultResultSet) GetRow(rowIdx int) (Row, error) {
+	if rowIdx < 0 || rowIdx >= len(rs.Rows) {
 		return Row{}, errorx.NewDatabaseError("Error retrieving DefaultResultSet row, index out of range: %d", rowIdx)
 	}
 
-	return r.Rows[rowIdx], nil
+	return rs.Rows[rowIdx], nil
 }
 
 // GetRows - return all the Row of this resultset.
-func (r *DefaultResultSet) GetRows() []Row {
-	return r.Rows
+func (rs *DefaultResultSet) GetRows() []Row {
+	return rs.Rows
 }
 
 // GetRowScan - Get row scan.
-func (r *DefaultResultSet) GetRowScan(rowIdx int) (RowScan, error) {
-	if rowIdx < 0 || rowIdx >= len(r.RowsScan) {
+func (rs *DefaultResultSet) GetRowScan(rowIdx int) (RowScan, error) {
+	if rowIdx < 0 || rowIdx >= len(rs.RowsScan) {
 		return nil, errorx.NewDatabaseError("Error retrieving DefaultResultSet RowsScan, index out of range: %d", rowIdx)
 	}
 
-	return r.RowsScan[rowIdx], nil
+	return rs.RowsScan[rowIdx], nil
 }
 
 // GetRowsScan - Return all RowScan of this resultset
-func (r *DefaultResultSet) GetRowsScan() []RowScan {
-	return r.RowsScan
+func (rs *DefaultResultSet) GetRowsScan() []RowScan {
+	return rs.RowsScan
 }
 
 // Close - It supposed to be implemented by the derived struct
 // to close the resultset eventually (Rows, RowsScan)
-func (r *DefaultResultSet) Close() {}
+func (rs *DefaultResultSet) Close() {}
 
 // ============================================
 // Utility Functions

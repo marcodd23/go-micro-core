@@ -10,7 +10,7 @@ type Message struct {
 	Attributes map[string]string
 }
 
-// NewPubSubMessage creates a new PipelineMessage.
+// NewPubSubMessage creates a new PubSub Message.
 func NewPubSubMessage(messageId string, payloadBody []byte, payloadAttrs map[string]string) *Message {
 	return &Message{
 		MessageId:  messageId,
@@ -29,7 +29,7 @@ func (msg *Message) GetPayload() []byte {
 	return msg.Data
 }
 
-// GetPayloadAttributes - Get message Attributes
-func (msg *Message) GetPayloadAttributes() map[string]string {
+// GetMessageAttributes - Get Message Attributes
+func (msg *Message) GetMessageAttributes() map[string]string {
 	return msg.Attributes
 }

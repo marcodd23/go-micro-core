@@ -1,11 +1,12 @@
 package pubsub
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
+	"time"
+
+	"cloud.google.com/go/pubsub"
 	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 	"google.golang.org/api/option"
-	"time"
 )
 
 // NewPubSubBufferedPublisherFactory - factory that create a cloud_pubsub client and then initialize a publisher.BufferedPublisher.
@@ -13,7 +14,7 @@ func NewPubSubBufferedPublisherFactory(
 	ctx context.Context,
 	projectID string,
 	batchSize int32,
-	flushDelayThreshold *time.Duration,
+	flushDelayThreshold int32,
 	opts ...option.ClientOption) (publisher.BufferedPublisher, error) {
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
@@ -24,10 +25,10 @@ func NewPubSubBufferedPublisherFactory(
 		BatchSize: batchSize,
 	}
 
-	if flushDelayThreshold == nil {
+	if flushDelayThreshold <= 0 {
 		publishConfig.FlushDelayThreshold = publisher.DefaultFlushDelayThreshold
 	} else {
-		publishConfig.FlushDelayThreshold = *flushDelayThreshold
+		publishConfig.FlushDelayThreshold = time.Duration(flushDelayThreshold) * time.Millisecond
 	}
 
 	pubSubClient := &pubSubClient{client: client}
