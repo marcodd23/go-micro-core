@@ -47,7 +47,7 @@ clean:
 .PHONY: test
 test: ${GOTESTSUM}
 	@echo "🚀 running tests"
-	@bash -c 'set -o pipefail; CGO_ENABLED=1 ${GOTESTSUM} --format testname --no-color=false -- -race ./pkg/... | grep -v "EMPTY"; exit $$?'
+	@bash -c 'set -o pipefail; CGO_ENABLED=1 ${GOTESTSUM} --format testname --no-color=false -- -race -count=1 ./pkg/... | grep -v "EMPTY"; exit $$?'
 	@#go test -cover -count=1 ./internal/...
 
 ## test-coverage: creates a test coverage report in HTML format

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 )
 
 type contextKey string
@@ -19,8 +19,8 @@ const (
 // Config holds the configuration for each pipeline, including its input and output channels, and the number of workers.
 type Config struct {
 	Pipeline   *Pipeline
-	InputChan  chan Message
-	OutputChan chan Message
+	InputChan  chan PipeEvent
+	OutputChan chan PipeEvent
 	NumWorkers int
 }
 
@@ -80,7 +80,7 @@ func (o *Orchestrator) processMessages(ctx context.Context, pipelineName string,
 		select {
 		case <-ctx.Done():
 			// Context was cancelled, stop processing
-			logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+			logx.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
 				Stopped,
 				strconv.Itoa(workerID),
 				pipelineName,
@@ -102,23 +102,23 @@ func (o *Orchestrator) processMessages(ctx context.Context, pipelineName string,
 			// Process the message
 			processedMsg, err := pipelineConfig.Pipeline.Process(msgCtx, msg)
 			if err != nil {
-				logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+				logx.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
 					Error,
 					strconv.Itoa(workerID),
 					pipelineName,
 					"",
-					msg.GetMsgRefId(),
+					msg.GetEventId(),
 					fmt.Sprintf("error processing message: %v", err),
 				))
 				continue
 			}
-			logmgr.GetLogger().LogInfo(msgCtx, fmt.Sprintf("Pipeline: %s, Worker: %d, completed processing message %s successfully", pipelineName, workerID, processedMsg.GetMsgRefId()))
-			logmgr.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
+			logx.GetLogger().LogInfo(msgCtx, fmt.Sprintf("Pipeline: %s, Worker: %d, completed processing message %s successfully", pipelineName, workerID, processedMsg.GetEventId()))
+			logx.GetLogger().LogInfo(context.Background(), BuildPipelineLog(
 				Completed,
 				strconv.Itoa(workerID),
 				pipelineName,
 				"",
-				processedMsg.GetMsgRefId(),
+				processedMsg.GetEventId(),
 				"completed processing message",
 			))
 

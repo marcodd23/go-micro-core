@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 )
 
 // WaitForShutdown waits for OS signals (SIGINT, SIGTERM) to gracefully shut down the application.
@@ -31,7 +31,7 @@ func WaitForShutdown(rootCtx context.Context, timeoutMilli int64, cleanupCallbac
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	// capture sigterm and other system call here
 	signalCaptured := <-signals
-	logmgr.GetLogger().LogDebug(rootCtx, fmt.Sprintf("Interrupt signal captured: %s", signalCaptured.String()))
+	logx.GetLogger().LogDebug(rootCtx, fmt.Sprintf("Interrupt signal captured: %s", signalCaptured.String()))
 	// Create a context with a timeout to give time to release resource
 	timeoutCtx, cancel := context.WithTimeout(rootCtx, time.Duration(timeoutMilli)*time.Millisecond)
 
@@ -46,7 +46,7 @@ func WaitForShutdown(rootCtx context.Context, timeoutMilli int64, cleanupCallbac
 //   - timeoutCtx: The context to use for the cleanup callback.
 //   - cleanupCallback: A function that contains the cleanup code to execute.
 func cleanUp(timeoutCtx context.Context, cleanupCallback func(timeoutCtx context.Context)) {
-	logmgr.GetLogger().LogInfo(timeoutCtx, "Cleaning up all resources ....")
+	logx.GetLogger().LogInfo(timeoutCtx, "Cleaning up all resources ....")
 
 	// Channel used to receive the result from cleanup callback function
 	ch := make(chan string, 1)
@@ -61,9 +61,9 @@ func cleanUp(timeoutCtx context.Context, cleanupCallback func(timeoutCtx context
 
 	select {
 	case <-timeoutCtx.Done():
-		logmgr.GetLogger().LogError(timeoutCtx, "Deadline exceeded during context cancellation", timeoutCtx.Err())
+		logx.GetLogger().LogError(timeoutCtx, "Deadline exceeded during context cancellation", timeoutCtx.Err())
 	case result := <-ch:
-		logmgr.GetLogger().LogInfo(timeoutCtx, result)
+		logx.GetLogger().LogInfo(timeoutCtx, result)
 	}
 }
 
@@ -115,7 +115,7 @@ func RunTaskWithContextCancellationCheck(rootCtx context.Context, task func(canc
 	case err := <-taskCompleted:
 		// Task completed without external termination signal
 		if err != nil {
-			logmgr.GetLogger().LogError(cancelCtx, "Task error", err)
+			logx.GetLogger().LogError(cancelCtx, "Task error", err)
 		}
 		cancel() // Cancel the context
 	}

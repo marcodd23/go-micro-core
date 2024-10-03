@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/goccy/go-json"
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 )
 
 // ValidationError - Errors for tags validation.
@@ -27,7 +27,7 @@ func NewValidationError(errors []*ValidationErrorResponse) *ValidationError {
 func (v *ValidationError) Error() string {
 	data, err := json.Marshal(v)
 	if err != nil {
-		logmgr.GetLogger().LogError(context.TODO(), "Error marshalling -Validation Error- to JSON:", err)
+		logx.GetLogger().LogError(context.TODO(), "Error marshalling -Validation Error- to JSON:", err)
 		return ""
 	}
 

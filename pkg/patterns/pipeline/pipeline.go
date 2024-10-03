@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 )
 
 // Status Define the Pipeline Status enum
@@ -32,20 +32,20 @@ func NewPipeline(name string, stages []Stage) *Pipeline {
 // Process pipes an incoming message through the pipeline.
 // Parameters:
 //   - ctx (context.Context): Processing context. Used for tracing.
-//   - msg (Message): ImmutablePipeMessage to process.
+//   - msg (PipeEvent): ImmutablePipeEvent to process.
 //
 // Returns:
-//   - Message: Processed message. Since incoming messages are immutable, this is an updated copy.
+//   - PipeEvent: Processed message. Since incoming messages are immutable, this is an updated copy.
 //   - error: If any error occurs during processing, this will not be nil.
-func (p Pipeline) Process(ctx context.Context, msg Message) (Message, error) {
+func (p Pipeline) Process(ctx context.Context, msg PipeEvent) (PipeEvent, error) {
 	workerID, _ := ctx.Value(workerIDKey).(string)
 	pipelineName, _ := ctx.Value(pipelineNameKey).(string)
-	logmgr.GetLogger().LogInfo(ctx, BuildPipelineLog(
+	logx.GetLogger().LogInfo(ctx, BuildPipelineLog(
 		Starting,
 		workerID,
 		pipelineName,
 		"",
-		msg.GetMsgRefId(),
+		msg.GetEventId(),
 		""))
 
 	var message = msg
@@ -60,19 +60,19 @@ func (p Pipeline) Process(ctx context.Context, msg Message) (Message, error) {
 	}
 
 	if err == nil {
-		logmgr.GetLogger().LogInfo(ctx, BuildPipelineLog(
+		logx.GetLogger().LogInfo(ctx, BuildPipelineLog(
 			Completed,
 			workerID,
 			pipelineName,
 			"",
-			msg.GetMsgRefId(),
+			msg.GetEventId(),
 			"COMPLETED"))
 	}
 
 	return message, err
 }
 
-func BuildPipelineLog(status Status, workerID string, pipelineName string, stageName string, msgId string, customMsg string) string {
+func BuildPipelineLog(status Status, workerID string, pipelineName string, stageName string, eventId string, customMsg string) string {
 
 	logMessage := ""
 
@@ -101,8 +101,8 @@ func BuildPipelineLog(status Status, workerID string, pipelineName string, stage
 	if stageName != "" && status != Completed && status != Starting {
 		logMessage += fmt.Sprintf("#Stage: %s, ", stageName)
 	}
-	if msgId != "" {
-		logMessage += fmt.Sprintf("#MessageKey: %s", msgId)
+	if eventId != "" {
+		logMessage += fmt.Sprintf("#EventId: %s", eventId)
 	}
 	if customMsg != "" {
 		logMessage += fmt.Sprintf(" -- %s", customMsg)
