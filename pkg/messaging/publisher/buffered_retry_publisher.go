@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 	"github.com/marcodd23/go-micro-core/pkg/messaging"
 )
 
@@ -129,10 +129,10 @@ func (p *bufferedPublisherWithRetry) Close(ctx context.Context) error {
 				break
 			}
 
-			logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("Flushing %d remaining messages before closing PubSub Client", totalRemainingMessages))
+			logx.GetLogger().LogInfo(ctx, fmt.Sprintf("Flushing %d remaining messages before closing PubSub Client", totalRemainingMessages))
 			err := p.Flush(ctx)
 			if err != nil {
-				logmgr.GetLogger().LogError(ctx, "Error final flushing of PubSub message buffer", err)
+				logx.GetLogger().LogError(ctx, "Error final flushing of PubSub message buffer", err)
 			}
 			flushRetry += 1
 		}

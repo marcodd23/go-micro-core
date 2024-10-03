@@ -2,19 +2,19 @@ package pubsub_test
 
 import (
 	"context"
+	pubsub2 "github.com/marcodd23/go-micro-core/test/testcontainer/pubsub"
 	"testing"
 	"time"
 
 	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
-	"github.com/marcodd23/go-micro-core/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
 	ctx := context.Background()
-	container, err := testcontainer.StartPubSubContainer(ctx, "test-project")
+	container, err := pubsub2.StartPubSubContainer(ctx, "test-project")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestPubSubBufferedPublisher_With_Retry_Proto(t *testing.T) {
 
 func TestPubSubBufferedPublisher_With_Retry_Json(t *testing.T) {
 	ctx := context.Background()
-	container, err := testcontainer.StartPubSubContainer(ctx, "test-project")
+	container, err := pubsub2.StartPubSubContainer(ctx, "test-project")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestPubSubBufferedPublisher_With_Retry_Json(t *testing.T) {
 
 func TestPubSubBufferedPublisher_Json(t *testing.T) {
 	ctx := context.Background()
-	container, err := testcontainer.StartPubSubContainer(ctx, "test-project")
+	container, err := pubsub2.StartPubSubContainer(ctx, "test-project")
 	if err != nil {
 		t.Fatal(err)
 	}

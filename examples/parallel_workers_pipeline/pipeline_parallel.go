@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 	"github.com/marcodd23/go-micro-core/pkg/patterns/pipeline"
 )
 
-func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitGroup) (inputChan chan pipeline.Message, outputChan chan pipeline.Message) {
+func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitGroup) (inputChan chan pipeline.PipeEvent, outputChan chan pipeline.PipeEvent) {
 	// Create input and output channels
-	inputChan = make(chan pipeline.Message, 100)
-	outputChan = make(chan pipeline.Message, 100)
+	inputChan = make(chan pipeline.PipeEvent, 100)
+	outputChan = make(chan pipeline.PipeEvent, 100)
 
 	// Create the stages for the pipeline
 	stages := []pipeline.Stage{
@@ -42,35 +42,35 @@ func SetupAndStartParallelWorkersPipeline(appCtx context.Context, wg *sync.WaitG
 	return inputChan, outputChan
 }
 
-func StartEventsConsumerMock(appCtx context.Context, outputChan <-chan pipeline.Message) {
+func StartEventsConsumerMock(appCtx context.Context, outputChan <-chan pipeline.PipeEvent) {
 	// Handle the output messages if needed
 	go func() {
 		for msg := range outputChan {
-			logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Output message %s received", msg.GetMsgRefId()))
+			logx.GetLogger().LogDebug(appCtx, fmt.Sprintf("Output message %s received", msg.GetEventId()))
 		}
 	}()
 }
 
-func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.Message) {
+func StartEventsProducerMock(appCtx context.Context, inputChan chan<- pipeline.PipeEvent) {
 	// Simulate incoming messages
 	go func() {
 		for i := 0; i < 10; i++ {
 			msg := pipeline.NewImmutablePipeMessage(fmt.Sprintf("messageId%d", i), []byte("message body"), map[string]string{"attrKey": "attrValue"})
 			inputChan <- msg
-			logmgr.GetLogger().LogDebug(appCtx, fmt.Sprintf("Sent message %s to input channel", msg.GetMsgRefId()))
+			logx.GetLogger().LogDebug(appCtx, fmt.Sprintf("Sent message %s to input channel", msg.GetEventId()))
 		}
 		close(inputChan) // Close the input channel to signal no more messages
 	}()
 }
 
-// Stage and ImmutablePipeMessage implementations (replace with actual implementations)
+// FirstStage Stage and ImmutablePipeEvent implementations (replace with actual implementations)
 type FirstStage struct {
 }
 
-func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
+func (s FirstStage) Process(ctx context.Context, msg pipeline.PipeEvent) (pipeline.PipeEvent, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
+	//logx.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
 	// Implement the processing logic here
 	// For example, modify the message payload or attributes
@@ -78,13 +78,14 @@ func (s FirstStage) Process(ctx context.Context, msg pipeline.Message) (pipeline
 	return msg, nil
 }
 
+// SecondStage Stage and ImmutablePipeEvent implementations (replace with actual implementations)
 type SecondStage struct {
 }
 
-func (s SecondStage) Process(ctx context.Context, msg pipeline.Message) (pipeline.Message, error) {
+func (s SecondStage) Process(ctx context.Context, msg pipeline.PipeEvent) (pipeline.PipeEvent, error) {
 	// Retrieve worker ID from the context
 	//workerID, _ := ctx.Value(workerIDKey).(int)
-	//logmgr.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
+	//logx.GetLogger().LogInfo(ctx, fmt.Sprintf("EXECUTING STAGE: %s", s.Name))
 
 	// Implement the processing logic here
 	// For example, modify the message payload or attributes
