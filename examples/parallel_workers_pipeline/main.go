@@ -5,10 +5,11 @@ import (
 	"log"
 	"sync"
 
-	"github.com/marcodd23/go-micro-core/pkg/configmgr"
-	"github.com/marcodd23/go-micro-core/pkg/database"
-	"github.com/marcodd23/go-micro-core/pkg/database/pgdb"
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/dbx"
+	"github.com/marcodd23/go-micro-core/pkg/dbx/pgxdb"
+
+	"github.com/marcodd23/go-micro-core/pkg/configx"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 	"github.com/marcodd23/go-micro-core/pkg/shutdown"
 )
 
@@ -16,8 +17,8 @@ import (
 const ShutdownTimeoutMilli = 500
 
 type ServiceConfig struct {
-	configmgr.BaseConfig `mapstructure:",squash"`
-	CustomProperty       string `mapstructure:"custom-property"`
+	configx.BaseConfig `mapstructure:",squash"`
+	CustomProperty     string `mapstructure:"custom-property"`
 }
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 
 	config := loadConfiguration()
 
-	logmgr.SetupLogger(config)
+	logx.SetupLogger(config)
 
 	wg := sync.WaitGroup{}
 	appCtx, cancelAppCtx := context.WithCancel(rootCtx)
@@ -49,7 +50,7 @@ func main() {
 func loadConfiguration() *ServiceConfig {
 	var cfg ServiceConfig
 
-	err := configmgr.LoadConfigFromPathForEnv("./examples/", &cfg)
+	err := configx.LoadConfigFromPathForEnv("./examples/", &cfg)
 	if err != nil {
 		log.Panicf("error loading property files: %+v", err)
 	}
@@ -61,8 +62,8 @@ func loadConfiguration() *ServiceConfig {
 func setupDatabase(
 	ctx context.Context,
 	appConfig *ServiceConfig,
-	preparesStatements []database.PreparedStatement) database.InstanceManager {
-	aclDBConf := database.ConnConfig{
+	preparesStatements []dbx.PreparedStatement) dbx.InstanceManager {
+	aclDBConf := dbx.ConnConfig{
 		VpcDirectConnection: false,
 		IsLocalEnv:          appConfig.IsLocalEnvironment(),
 		Host:                "",
@@ -73,5 +74,5 @@ func setupDatabase(
 		MaxConn:             10,
 	}
 
-	return pgdb.SetupPostgresDB(ctx, aclDBConf, preparesStatements...)
+	return pgxdb.SetupPostgresDbManager(ctx, aclDBConf, preparesStatements...)
 }
