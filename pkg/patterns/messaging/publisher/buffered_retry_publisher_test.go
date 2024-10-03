@@ -3,14 +3,14 @@ package publisher_test
 import (
 	"context"
 	"errors"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
+	publisher2 "github.com/marcodd23/go-micro-core/pkg/patterns/messaging/publisher"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
-	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
 	gcpPubSub "github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +23,7 @@ func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {
 	maxRetryCount := int16(3)
 	flushDelayThreshold := time.Millisecond * 10
 
-	publishConfig := publisher.TopicPublishConfig{
+	publishConfig := publisher2.TopicPublishConfig{
 		BatchSize:           batchSize,
 		MaxRetryCount:       maxRetryCount,
 		FlushDelayThreshold: flushDelayThreshold,
@@ -55,19 +55,19 @@ func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher2.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},
 	}
 
 	mockClient := &MockClient{
-		topics: map[string]publisher.Topic{
+		topics: map[string]publisher2.Topic{
 			"test-topic": mockTopic,
 		},
 	}
 
-	bufferedPublisher, err := publisher.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
+	bufferedPublisher, err := publisher2.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
 	assert.NoError(t, err)
 
 	err = bufferedPublisher.Publish(ctx, "test-topic", mockMessage)
@@ -91,7 +91,7 @@ func TestRetryLogicAndBackgroundRoutine_ProtoMessage(t *testing.T) {
 
 	wg.Wait()
 
-	topicCache, ok := reflect.ValueOf(bufferedPublisher).Elem().FieldByName("TopicCache").Interface().(*publisher.TopicCache)
+	topicCache, ok := reflect.ValueOf(bufferedPublisher).Elem().FieldByName("TopicCache").Interface().(*publisher2.TopicCache)
 	assert.Truef(t, ok, "Failed to convert reflect.Value back to *TopicCache")
 
 	topicCache.Lock()
@@ -110,7 +110,7 @@ func TestRetryLogicAndBackgroundRoutine_JsonMessage(t *testing.T) {
 	maxRetryCount := int16(3)
 	flushDelayThreshold := time.Millisecond * 10
 
-	publishConfig := publisher.TopicPublishConfig{
+	publishConfig := publisher2.TopicPublishConfig{
 		BatchSize:           batchSize,
 		MaxRetryCount:       maxRetryCount,
 		FlushDelayThreshold: flushDelayThreshold,
@@ -147,19 +147,19 @@ func TestRetryLogicAndBackgroundRoutine_JsonMessage(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher2.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},
 	}
 
 	mockClient := &MockClient{
-		topics: map[string]publisher.Topic{
+		topics: map[string]publisher2.Topic{
 			"test-topic": mockTopic,
 		},
 	}
 
-	bufferedPublisher, err := publisher.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
+	bufferedPublisher, err := publisher2.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
 	assert.NoError(t, err)
 
 	err = bufferedPublisher.Publish(ctx, "test-topic", mockMessage)
@@ -197,7 +197,7 @@ func TestClose(t *testing.T) {
 	maxRetryCount := int16(3)
 	flushDelayThreshold := time.Millisecond * 10
 
-	publishConfig := publisher.TopicPublishConfig{
+	publishConfig := publisher2.TopicPublishConfig{
 		BatchSize:           batchSize,
 		MaxRetryCount:       maxRetryCount,
 		FlushDelayThreshold: flushDelayThreshold,
@@ -221,19 +221,19 @@ func TestClose(t *testing.T) {
 
 	mockTopic := MockTopic{
 		id: "test-topic",
-		publishFunc: func(ctx context.Context, msg messaging.Message) publisher.PublishResult {
+		publishFunc: func(ctx context.Context, msg messaging.Message) publisher2.PublishResult {
 			return mockResult
 		},
 		configPublishSettingsFunc: func(config func(topic *pubsub.Topic)) {},
 	}
 
 	mockClient := &MockClient{
-		topics: map[string]publisher.Topic{
+		topics: map[string]publisher2.Topic{
 			"test-topic": mockTopic,
 		},
 	}
 
-	bufferedPublisher, err := publisher.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
+	bufferedPublisher, err := publisher2.NewBufferedPublisherWithRetry(ctx, mockClient, publishConfig)
 	assert.NoError(t, err)
 
 	err = bufferedPublisher.Publish(ctx, "test-topic", mockMessage)

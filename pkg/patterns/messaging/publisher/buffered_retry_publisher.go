@@ -3,13 +3,13 @@ package publisher
 import (
 	"context"
 	"fmt"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
 	"log"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/marcodd23/go-micro-core/pkg/logx"
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
 )
 
 // BufferedPublisherWithRetry - interface for the publisher

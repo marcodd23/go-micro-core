@@ -2,11 +2,11 @@ package pubsub_test
 
 import (
 	"context"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
 	pubsub2 "github.com/marcodd23/go-micro-core/test/testcontainer/pubsub"
 	"testing"
 	"time"
 
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
 	"github.com/marcodd23/go-micro-core/pkg/platform/gcp/pubsub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

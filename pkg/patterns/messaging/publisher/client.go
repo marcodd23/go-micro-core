@@ -2,9 +2,8 @@ package publisher
 
 import (
 	"context"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
 	"time"
-
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
 )
 
 const (

@@ -1,9 +1,8 @@
 package publisher
 
 import (
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
 	"log"
-
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
 
 	"context"
 	"sync"

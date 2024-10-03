@@ -3,9 +3,8 @@ package publisher_test
 
 import (
 	"context"
-
-	"github.com/marcodd23/go-micro-core/pkg/messaging"
-	"github.com/marcodd23/go-micro-core/pkg/messaging/publisher"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging"
+	"github.com/marcodd23/go-micro-core/pkg/patterns/messaging/publisher"
 
 	"cloud.google.com/go/pubsub"
 )
