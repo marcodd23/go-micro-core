@@ -2,15 +2,14 @@ package pipeline
 
 import (
 	"context"
-
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
 )
 
 // Stage describes a pipeline stage a message can be routed through.
 // Depending on the implementation, it may return the same message or a modified copy.
 type Stage interface {
 	// Process processes an incoming message and returns a modified copy and/or error once done.
-	Process(context.Context, Message) (Message, error)
+	Process(context.Context, PipeEvent) (PipeEvent, error)
 }
 
 type NamedStage struct {
@@ -18,11 +17,11 @@ type NamedStage struct {
 	Stage
 }
 
-func (s NamedStage) Process(ctx context.Context, msg Message) (Message, error) {
+func (s NamedStage) Process(ctx context.Context, msg PipeEvent) (PipeEvent, error) {
 	workerID, _ := ctx.Value(workerIDKey).(string)
 	pipelineName, _ := ctx.Value(pipelineNameKey).(string)
 
-	logmgr.GetLogger().LogInfo(ctx, BuildPipelineLog(Processing, workerID, pipelineName, s.Name, msg.GetMsgRefId(), ""))
+	logx.GetLogger().LogInfo(ctx, BuildPipelineLog(Processing, workerID, pipelineName, s.Name, msg.GetEventId(), ""))
 
 	return s.Stage.Process(ctx, msg)
 }
