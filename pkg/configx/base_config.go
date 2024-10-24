@@ -32,6 +32,7 @@ server:
   port: "8080"
   concurrency: 10
   disableStartupMsg: false
+  bodyLimit: 1048576
 */
 type BaseConfig struct {
 	Name        string         `mapstructure:"name"`
@@ -47,6 +48,7 @@ type ServerConfig struct {
 	Port                  string `mapstructure:"port"`
 	Concurrency           int    `mapstructure:"concurrency"`
 	DisableStartupMessage bool   `mapstructure:"disableStartupMsg"`
+	BodyLimit             int    `mapstructure:"bodyLimit"`
 }
 
 type LoggingConfig struct {
@@ -93,4 +95,12 @@ func (cfg BaseConfig) GetGcpConfig() *GcpConfig {
 
 func (cfg BaseConfig) GetLoggingConfig() *LoggingConfig {
 	return cfg.Logging
+}
+
+func (srv ServerConfig) GetBodyLimit() int {
+	if srv.BodyLimit == 0 {
+		return 4 * 1024 * 1024
+	}
+
+	return srv.BodyLimit
 }
