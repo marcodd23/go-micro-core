@@ -46,24 +46,26 @@ package main
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v2"
-	"github.com/marcodd23/go-micro-core/pkg/configmgr"
-	"github.com/marcodd23/go-micro-core/pkg/database"
-	"github.com/marcodd23/go-micro-core/pkg/database/pgdb"
-	"github.com/marcodd23/go-micro-core/pkg/logmgr"
-	"github.com/marcodd23/go-micro-core/pkg/servermgr/fibersrv"
-	"github.com/marcodd23/go-micro-core/pkg/shutdown"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/marcodd23/go-micro-core/pkg/dbx"
+	"github.com/marcodd23/go-micro-core/pkg/dbx/pgxdb"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/marcodd23/go-micro-core/pkg/configx"
+	"github.com/marcodd23/go-micro-core/pkg/logx"
+	"github.com/marcodd23/go-micro-core/pkg/serverx/fibersrv"
+	"github.com/marcodd23/go-micro-core/pkg/shutdown"
 )
 
 // ShutdownTimeoutMilli - timeout for cleaning up resources before shutting down the server.
 const ShutdownTimeoutMilli = 500
 
 type ServiceConfig struct {
-	configmgr.BaseConfig `mapstructure:",squash"`
-	CustomProperty       string `mapstructure:"custom-property"`
+	configx.BaseConfig `mapstructure:",squash"`
+	CustomProperty     string `mapstructure:"custom-property"`
 }
 
 func main() {
@@ -71,28 +73,17 @@ func main() {
 
 	config := loadConfiguration()
 
-	logmgr.SetupLogger(config)
+	logx.SetupLogger(config)
 
-	db := setupDatabase(rootCtx, config, []database.PreparedStatement{})
+	//setupDatabase(rootCtx, config, []database.PreparedStatement{})
 
 	serverManager := fibersrv.NewFiberServer(config)
 
 	// Setup Routes
 	serverManager.Setup(rootCtx, func(appServer *fiber.App) {
-		appServer.Group("/api")
+		appServer.Group("/opoa/nexus/api")
 		appServer.Get("/", func(c *fiber.Ctx) error {
-
-			go func() {
-				db.QueryAndProcess(c.Context(), 0, func(row database.Row, rowScan database.RowScan) error {
-					logmgr.GetLogger().LogInfo(rootCtx, "Process each row of the ResultSet")
-
-					return nil
-				},`SELECT MESSAGE_ID, ENTITY_NAME, ENTITY_KEY, EVENT_PAYLOAD, MODIFY_TS
-						FROM EVENT_LOG
-						ORDER BY MESSAGE_ID`)
-			}()
-
-			return c.SendString("Process Started")
+			return c.SendString("Hello, World!")
 		})
 	})
 
@@ -127,10 +118,10 @@ func InfinitePolling(appCtx context.Context, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-ctx.Done():
-				logmgr.GetLogger().LogInfo(ctx, "Context cancelled, exiting goroutine")
+				logx.GetLogger().LogInfo(ctx, "Context cancelled, exiting goroutine")
 				return
 			case <-ticker.C:
-				logmgr.GetLogger().LogInfo(ctx, "Logging from infinite loop...")
+				logx.GetLogger().LogInfo(ctx, "Logging from infinite loop...")
 			}
 		}
 	}(appCtx)
@@ -139,7 +130,7 @@ func InfinitePolling(appCtx context.Context, wg *sync.WaitGroup) {
 func loadConfiguration() *ServiceConfig {
 	var cfg ServiceConfig
 
-	err := configmgr.LoadConfigFromPathForEnv("./examples/", &cfg)
+	err := configx.LoadConfigFromPathForEnv("./examples/", &cfg)
 	if err != nil {
 		log.Panicf("error loading property files: %+v", err)
 	}
@@ -151,8 +142,8 @@ func loadConfiguration() *ServiceConfig {
 func setupDatabase(
 	ctx context.Context,
 	appConfig *ServiceConfig,
-	preparesStatements []database.PreparedStatement) database.InstanceManager {
-	aclDBConf := database.ConnConfig{
+	preparesStatements []dbx.PreparedStatement) dbx.InstanceManager {
+	aclDBConf := dbx.ConnConfig{
 		VpcDirectConnection: false,
 		IsLocalEnv:          appConfig.IsLocalEnvironment(),
 		Host:                "",
@@ -163,8 +154,9 @@ func setupDatabase(
 		MaxConn:             10,
 	}
 
-	return pgdb.SetupPostgresDB(ctx, aclDBConf, preparesStatements...)
+	return pgxdb.SetupPostgresDbManager(ctx, aclDBConf, preparesStatements...)
 }
+
 ```
 
 ## Contributing
