@@ -108,6 +108,8 @@ func TxQueryAndMap[T any](tx dbx.Transaction, ctx context.Context, query string,
 		return nil, errors.WithStack(err)
 	}
 
+	defer rows.(pgx.Rows).Close()
+
 	results, err := pgx.CollectRows(rows.(pgx.Rows), pgx.RowToStructByName[T])
 	if err != nil {
 		return nil, errors.Wrap(err, "TxQueryAndMap error mapping and collecting rows to struct slice")
@@ -136,6 +138,8 @@ func TxQueryMapAndProcess[T any](tx dbx.Transaction, ctx context.Context, query 
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	defer rows.(pgx.Rows).Close()
 
 	for rows.(pgx.Rows).Next() {
 		item, err := pgx.RowToStructByName[T](rows.(pgx.Rows))
